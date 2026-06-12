@@ -66,10 +66,6 @@ p{margin:0 0 .9rem;max-width:70ch}
 .badge.live{background:var(--green-dim);color:var(--green);border:1px solid var(--green)}
 .badge.queue{background:#fff8e6;color:#946f00;border:1px solid var(--yellow)}
 .badge.planned{background:var(--paper-dim);color:var(--ink-soft);border:1px solid var(--rail)}
-.badge.surv{background:var(--green-dim);color:var(--green);border:1px dashed var(--green)}
-.roulette{font-family:var(--mono);font-size:.8rem;border:1px solid var(--red);color:var(--red);
-  background:var(--paper);border-radius:6px;padding:.45rem .9rem;cursor:pointer;margin:.2rem 0 1rem}
-.roulette:hover{background:var(--red-dim)}
 .c-setup{border-left-color:var(--c-setup)} .c-git{border-left-color:var(--c-git)}
 .c-pipe{border-left-color:var(--c-pipe)} .c-spark{border-left-color:var(--c-spark)}
 
@@ -163,7 +159,6 @@ footer{border-top:1px solid var(--rail);margin-top:2.6rem;padding-top:1.4rem;fon
     <a class="routerow" href="/collaboration-bootcamp/pipeline-survival-guide/#s10"><span class="sym">"The pipeline is red, the test is flaky, the release is today."</span><span class="dest">🔴 pipeline SOS →</span></a>
     <div class="routerow dis"><span class="sym">"The Spark job OOMed at 3am."</span><span class="dest">🔥 soon</span></div>
   </div>
-  <button class="roulette" id="roulette" type="button">🎲 can't decide? panic roulette →</button>
 </section>
 
 <section class="reveal" id="conventions">
@@ -248,40 +243,6 @@ function eggGo(){
 }
 egg.addEventListener('click',eggGo);
 egg.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();eggGo();}});
-
-/* survival progress — guides mark themselves visited via localStorage */
-let surv={};
-try{surv=JSON.parse(localStorage.getItem('cb-survived')||'{}');}catch(e){}
-let nSurv=0;
-['setup','git','pipeline'].forEach(m=>{
-  if(surv[m]){
-    nSurv++;
-    const h=document.querySelector('.card[data-mod="'+m+'"] h3');
-    if(h && !h.querySelector('.surv')){
-      const b=document.createElement('span'); b.className='badge surv'; b.textContent='✓ survived';
-      h.appendChild(b);
-    }
-  }
-});
-egg.textContent=nSurv+'/3 panics survived, 0 careers lost';
-
-/* panic roulette */
-const sosUrls=[
-  '/collaboration-bootcamp/consultant-setup-survival-guide/#sos',
-  '/collaboration-bootcamp/git-survival-guide/#sos',
-  '/collaboration-bootcamp/pipeline-survival-guide/#s10'
-];
-const rl=document.getElementById('roulette');
-if(rl){
-  rl.addEventListener('click',()=>{
-    const dest=sosUrls[Math.floor(Math.random()*sosUrls.length)];
-    if(reduced){ location.href=dest; return; }
-    const faces=['😱','🔴','🧯','🎲'];
-    let i=0;
-    const iv=setInterval(()=>{ rl.textContent=faces[i++%faces.length]+' spinning…'; },90);
-    setTimeout(()=>{ clearInterval(iv); location.href=dest; },800);
-  });
-}
 
 /* easter egg: type "panic" anywhere */
 let kbuf='';
