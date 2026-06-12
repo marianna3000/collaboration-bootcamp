@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Collaboration Bootcamp — the survival guide series</title>
+<meta name="description" content="Collaboration Bootcamp — one front door for the survival guide series: setup, git, pipelines, Spark. Pick your panic.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1b1f23; --ink-soft:#4b5258;
+  --paper:#ffffff; --paper-dim:#f6f7f8; --rail:#d4d8dc;
+  --green:#2ea043; --green-dim:#e9f7ec;
+  --red:#cf222e; --red-dim:#fdecee;
+  --yellow:#d4a017;
+  --code-bg:#16181d; --code-ink:#e8eaed; --code-comment:#7d8590;
+  --c-setup:#0e7c86; --c-git:#f05133; --c-pipe:#1f6feb; --c-spark:#e25a1c; --c-docker:#2496ed;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --serif:'Source Serif 4',Georgia,serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{font-family:var(--serif);color:var(--ink);background:var(--paper);line-height:1.65;font-size:17px}
+h1,h2,h3,.term,.card,.badge,nav,th,figcaption,footer,.routerow{font-family:var(--mono)}
+a{color:var(--c-pipe)}
+a:focus-visible,button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--c-pipe);outline-offset:2px}
+.page{max-width:880px;margin:0 auto;padding:2.5rem 1.2rem 4rem}
+h1{font-size:1.5rem;margin:1.4rem 0 .35rem;letter-spacing:-.02em}
+.subtitle{color:var(--ink-soft);font-style:italic;margin-bottom:1.8rem}
+h2{font-size:1.15rem;margin:2.4rem 0 .9rem;padding-top:1.6rem;border-top:1px dashed var(--rail)}
+p{margin:0 0 .9rem;max-width:70ch}
+
+/* hero terminal */
+.term{background:var(--code-bg);color:var(--code-ink);border-radius:10px;overflow:hidden;
+  box-shadow:0 12px 30px rgba(27,31,35,.25);font-size:.84rem}
+.term-bar{background:#23262d;padding:.5rem .8rem;display:flex;gap:.45rem;align-items:center;color:#9aa1a9}
+.term-bar i{width:.75rem;height:.75rem;border-radius:50%;display:inline-block}
+.term-bar .r{background:#ff5f56}.term-bar .y{background:#ffbd2e}.term-bar .g{background:#27c93f}
+.term-bar span{margin-left:.5rem;font-size:.75rem}
+.term-body{position:relative;padding:1rem 1.1rem 1.2rem}
+.term-sizer{visibility:hidden;white-space:pre-wrap}
+.term-anim{position:absolute;top:1rem;left:1.1rem;right:1.1rem;bottom:1.2rem;white-space:pre-wrap}
+.term .ok{color:#3fb950}.term .warn{color:#d4a017}.term .dim{color:var(--code-comment)}
+.term .cur{display:inline-block;width:.55em;height:1.05em;background:var(--code-ink);
+  vertical-align:text-bottom;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* module cards */
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:1.1rem;margin:0 0 1rem}
+@media (max-width:700px){.cards{grid-template-columns:1fr}}
+.card{border:1px solid var(--rail);border-left:6px solid var(--rail);border-radius:8px;
+  background:var(--paper-dim);padding:1rem 1.1rem;font-size:.86rem;display:flex;flex-direction:column;gap:.55rem}
+.card.shipped{background:#fff}
+.card h3{font-size:.98rem;margin:0;display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap}
+.card .desc{font-family:var(--serif);font-size:.95rem}
+.card .pan{font-family:var(--serif);font-style:italic;color:var(--ink-soft);font-size:.9rem}
+.card .links{margin-top:auto;display:flex;gap:.7rem;flex-wrap:wrap}
+.card .links a{font-size:.8rem;text-decoration:none;border:1px solid var(--rail);border-radius:6px;
+  padding:.3rem .7rem;color:var(--ink);background:var(--paper)}
+.card .links a:hover{border-color:var(--ink)}
+.card .links a.sos{color:var(--red);border-color:var(--red)}
+.badge{font-size:.66rem;border-radius:99px;padding:.1rem .55rem;letter-spacing:.04em;white-space:nowrap}
+.badge.live{background:var(--green-dim);color:var(--green);border:1px solid var(--green)}
+.badge.queue{background:#fff8e6;color:#946f00;border:1px solid var(--yellow)}
+.badge.planned{background:var(--paper-dim);color:var(--ink-soft);border:1px solid var(--rail)}
+.c-setup{border-left-color:var(--c-setup)} .c-git{border-left-color:var(--c-git)}
+.c-pipe{border-left-color:var(--c-pipe)} .c-spark{border-left-color:var(--c-spark)}
+.c-docker{border-left-color:var(--c-docker)}
+
+/* track */
+.track{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;font-family:var(--mono);font-size:.8rem;margin:0 0 1rem}
+.track a,.track span.stop{border:1px solid var(--rail);border-radius:99px;padding:.3rem .85rem;
+  text-decoration:none;color:var(--ink);background:var(--paper-dim)}
+.track a:hover{border-color:var(--ink)}
+.track .arr{color:var(--ink-soft)}
+.track .stop.dis{color:var(--ink-soft);border-style:dashed}
+
+/* panic router */
+.router{border:1px solid var(--rail);border-radius:8px;overflow:hidden;margin:0 0 1rem}
+.routerow{display:flex;justify-content:space-between;gap:1rem;align-items:center;
+  padding:.65rem .9rem;font-size:.84rem;border-bottom:1px solid var(--rail);text-decoration:none;color:var(--ink)}
+.routerow:last-child{border-bottom:none}
+a.routerow:hover{background:var(--red-dim)}
+.routerow .sym{font-family:var(--serif);font-size:.95rem}
+.routerow .dest{color:var(--red);white-space:nowrap}
+.routerow.dis{color:var(--ink-soft)}
+.routerow.dis .dest{color:var(--ink-soft)}
+
+.note{background:#e8f0fe;border-left:4px solid var(--c-pipe);border-radius:8px;padding:.85rem 1rem;margin:0 0 1rem;font-size:.95rem;max-width:70ch}
+.note b:first-child{font-family:var(--mono);font-size:.78rem;display:block;margin-bottom:.25rem;letter-spacing:.04em}
+
+footer{border-top:1px solid var(--rail);margin-top:2.6rem;padding-top:1.4rem;font-size:.76rem;color:var(--ink-soft)}
+#egg{cursor:pointer;color:var(--green);font-weight:600}
+.confetti{position:fixed;top:-12px;z-index:99;pointer-events:none;border-radius:2px}
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .5s,transform .5s}
+.reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="term" role="img" aria-label="Animated terminal running ./survive --list, printing the survival guide modules with their statuses.">
+  <div class="term-bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>collaboration-bootcamp — survival-guides</span></div>
+  <div class="term-body"><div class="term-sizer" id="termSizer" aria-hidden="true"></div><div class="term-anim" id="termBody" aria-hidden="true"></div></div>
+</div>
+
+<h1>Collaboration Bootcamp</h1>
+<p class="subtitle">aka <span style="font-family:var(--mono);font-style:normal">./survive --list</span> — the survival guide series. One front door, four flavors of panic. Pick yours.</p>
+
+<section class="reveal" id="modules">
+  <h2>the modules</h2>
+  <div class="cards">
+    <div class="card shipped c-setup">
+      <h3>./onboard.sh <span class="badge live">● live</span></h3>
+      <p class="desc">The Consultant's Setup Survival Guide — terminal, Python tooling, IDE, containers on your machine, and a laptop you could replace in 30 minutes.</p>
+      <p class="pan">For when: it's day one and nothing is installed, or day 400 and nothing works.</p>
+      <div class="links"><a href="/collaboration-bootcamp/consultant-setup-survival-guide/">read →</a><a class="sos" href="/collaboration-bootcamp/consultant-setup-survival-guide/#sos">😱 env broken</a></div>
+    </div>
+    <div class="card shipped c-git">
+      <h3>git log --survival-guide <span class="badge live">● live</span></h3>
+      <p class="desc">The Git Survival Guide — how git thinks, the 12 commands that matter, merge vs rebase settled, and disaster recovery for every flavor of oh-no.</p>
+      <p class="pan">For when: the branch is a crime scene and the PR is due.</p>
+      <div class="links"><a href="/collaboration-bootcamp/git-survival-guide/">read →</a><a class="sos" href="/collaboration-bootcamp/git-survival-guide/#sos">😱 git mess</a></div>
+    </div>
+    <div class="card shipped c-pipe">
+      <h3>pipeline-survival-guide <span class="badge live">● live</span></h3>
+      <p class="desc">The Pipeline Survival Guide — Python testing, typing, logging, and CI/CD anatomy, vendor-neutral. Releases so boring they're praise.</p>
+      <p class="pan">For when: the pipeline is red and the release is today.</p>
+      <div class="links"><a href="/collaboration-bootcamp/pipeline-survival-guide/">read →</a><a class="sos" href="/collaboration-bootcamp/pipeline-survival-guide/#s10">🔴 pipeline red</a></div>
+    </div>
+    <div class="card c-spark">
+      <h3>spark-survival-guide <span class="badge queue">⏳ in the queue</span></h3>
+      <p class="desc">The Spark Survival Guide — PySpark for people who get paged. Lazy DAGs, shuffles, skew, and why collect() was a mistake.</p>
+      <p class="pan">For when: the driver has left the chat.</p>
+    </div>
+    <div class="card c-docker">
+      <h3>docker-and-cloud <span class="badge planned">◌ planned</span></h3>
+      <p class="desc">Containers, images, and deployment infrastructure — where the pipeline guide's deploy stage actually lands.</p>
+      <p class="pan">For when: it works in the container. The container won't start.</p>
+    </div>
+  </div>
+</section>
+
+<section class="reveal" id="tracks">
+  <h2>day one at the keyboard? read in this order</h2>
+  <div class="track">
+    <a href="/collaboration-bootcamp/consultant-setup-survival-guide/">01 setup</a><span class="arr">→</span>
+    <a href="/collaboration-bootcamp/git-survival-guide/">02 git</a><span class="arr">→</span>
+    <a href="/collaboration-bootcamp/pipeline-survival-guide/">03 pipelines</a><span class="arr">→</span>
+    <span class="stop dis">04 spark (soon)</span>
+  </div>
+  <p>Each one stands alone — but they link forward: the setup guide's inner loop becomes the pipeline guide's outer loop, and the pipeline guide's testing chapter is what the Spark guide will assume you know.</p>
+</section>
+
+<section class="reveal" id="onfire">
+  <h2>already on fire? skip the reading</h2>
+  <div class="router">
+    <a class="routerow" href="/collaboration-bootcamp/consultant-setup-survival-guide/#sos"><span class="sym">"My environment is broken and I can't even run the thing."</span><span class="dest">😱 setup SOS →</span></a>
+    <a class="routerow" href="/collaboration-bootcamp/git-survival-guide/#sos"><span class="sym">"I committed to the wrong branch / force-pushed / it's all gone."</span><span class="dest">😱 git SOS →</span></a>
+    <a class="routerow" href="/collaboration-bootcamp/pipeline-survival-guide/#s10"><span class="sym">"The pipeline is red, the test is flaky, the release is today."</span><span class="dest">🔴 pipeline SOS →</span></a>
+    <div class="routerow dis"><span class="sym">"The Spark job OOMed at 3am."</span><span class="dest">🔥 soon</span></div>
+  </div>
+</section>
+
+<section class="reveal" id="conventions">
+  <h2>how the series works</h2>
+  <div class="note"><b>SERIES CONSTANTS</b>
+  One self-contained <code style="font-family:var(--mono)">index.html</code> per module, zero build, GitHub Pages. Mono headings, serif body. Every module has: a day-zero loop, a mental model, wanted posters, a settled holy war, disaster recovery with a panic button, and a boss fight. Every command is verified against the real tool before it ships. Edit, push, done — PRs welcome on any module.</div>
+</section>
+
+<footer>
+  <p>survival guide series · the front door · add the next module by editing one card above</p>
+  <p style="margin-top:.5rem">$ ./survive --status → <span id="egg" role="button" tabindex="0" aria-label="Easter egg">4 panics survived, 0 careers lost</span></p>
+</footer>
+
+</div>
+<script>
+(function(){
+"use strict";
+const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const lines = [
+  {t:'$ ./survive --list', cls:''},
+  {t:'setup      ./onboard.sh                 [live]   😱 ENV BROKEN', cls:'ok'},
+  {t:'git        git log --survival-guide     [live]   😱 PANIC', cls:'ok'},
+  {t:'pipeline   pipeline-survival-guide      [live]   🔴 PIPELINE RED', cls:'ok'},
+  {t:'spark      spark-survival-guide         [queue]  🔥 DRIVER OOM', cls:'warn'},
+  {t:'4 modules live or queued · 1 planned · 0 panics unhandled · pick yours below', cls:'dim'}
+];
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+const body=document.getElementById('termBody');
+document.getElementById('termSizer').innerHTML =
+  lines.map(l=>'<span class="'+l.cls+'">'+esc(l.t)+'</span>').join('\n');
+function renderStatic(){ body.innerHTML = lines.map(l=>'<span class="'+l.cls+'">'+esc(l.t)+'</span>').join('\n'); }
+if(reduced){ renderStatic(); }
+else{
+  let li=0,ci=0;
+  function tick(){
+    if(li>=lines.length){
+      setTimeout(()=>{li=0;ci=0;body.innerHTML='<span class="cur"></span>';setTimeout(tick,600);},7000);
+      return;
+    }
+    const line=lines[li]; ci++;
+    const done=lines.slice(0,li).map(l=>'<span class="'+l.cls+'">'+esc(l.t)+'</span>').join('\n');
+    const cur='<span class="'+line.cls+'">'+esc(line.t.slice(0,ci))+'</span>';
+    body.innerHTML=(done?done+'\n':'')+cur+'<span class="cur"></span>';
+    if(ci>=line.t.length){ li++; ci=0; setTimeout(tick, li===1?420:170); }
+    else setTimeout(tick, li===0?40:6);
+  }
+  body.innerHTML='<span class="cur"></span>';
+  setTimeout(tick,400);
+}
+if(!reduced && 'IntersectionObserver' in window){
+  const io=new IntersectionObserver(es=>es.forEach(e=>{
+    if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}
+  }),{threshold:.08});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+}else{
+  document.querySelectorAll('.reveal').forEach(el=>el.classList.add('in'));
+}
+function confetti(){
+  if(reduced) return;
+  const colors=['#0e7c86','#f05133','#1f6feb','#e25a1c','#2ea043'];
+  for(let i=0;i<80;i++){
+    const c=document.createElement('div'); c.className='confetti';
+    const s=6+Math.random()*7;
+    c.style.cssText='left:'+(Math.random()*100)+'vw;width:'+s+'px;height:'+(s*0.6)+'px;background:'+
+      colors[i%colors.length]+';transform:rotate('+(Math.random()*360)+'deg)';
+    document.body.appendChild(c);
+    const a=c.animate(
+      [{transform:c.style.transform+' translateY(0)',opacity:1},
+       {transform:'rotate('+(Math.random()*720)+'deg) translateY(105vh)',opacity:.7}],
+      {duration:2200+Math.random()*1800,easing:'cubic-bezier(.2,.6,.4,1)'});
+    a.onfinish=()=>c.remove();
+  }
+}
+const egg=document.getElementById('egg');
+function eggGo(){
+  confetti();
+  if(!document.getElementById('eggline')){
+    const s=document.createElement('div'); s.id='eggline';
+    s.textContent='the real survival guide was the incidents we documented along the way. 🧯';
+    document.querySelector('footer').appendChild(s);
+  }
+}
+egg.addEventListener('click',eggGo);
+egg.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();eggGo();}});
+})();
+</script>
+</body>
+</html>

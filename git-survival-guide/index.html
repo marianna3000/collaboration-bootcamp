@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>git log --survival-guide</title>
+<meta name="description" content="A field guide to Git: how it thinks, how people break it, and how to fix it. Now with a panic button.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1b1f23; --ink-soft:#4b5258;
+  --paper:#ffffff; --paper-dim:#f6f7f8; --rail:#d4d8dc;
+  --orange:#f05133; --orange-dim:#fdeae5;
+  --green:#2ea043; --green-dim:#e9f7ec;
+  --red:#cf222e; --red-dim:#fdecee;
+  --blue:#0969da; --yellow:#d4a017;
+  --code-bg:#16181d; --code-ink:#e8eaed; --code-comment:#7d8590; --code-accent:#ffa657;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  --serif:'Source Serif 4',Georgia,serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+body{font-family:var(--serif);font-size:1.0625rem;line-height:1.7;color:var(--ink);background:var(--paper)}
+a{color:var(--blue);text-decoration-thickness:1px;text-underline-offset:2px}
+a:hover{color:var(--orange)}
+:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+
+.wrap{display:grid;grid-template-columns:300px 1fr;max-width:1200px;margin:0 auto}
+main{min-width:0;padding:0 3rem 6rem 3.5rem}
+@media (max-width:920px){.wrap{grid-template-columns:1fr}main{padding:0 1.25rem 4rem 1.25rem}}
+
+/* ------- sidebar = git log ------- */
+nav.log{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;
+  padding:2rem 1rem 2rem 1.5rem;border-right:1px solid var(--rail);
+  font-family:var(--mono);font-size:.78rem;background:var(--paper)}
+nav.log .cmd{color:var(--ink-soft);margin-bottom:1.25rem;font-size:.75rem}
+nav.log .cmd b{color:var(--ink)}
+nav.log a{display:flex;gap:.6rem;align-items:baseline;padding:.32rem .4rem;border-radius:6px;
+  color:var(--ink);text-decoration:none;line-height:1.35;transition:transform .12s}
+nav.log a:hover{background:var(--paper-dim);transform:translateX(4px)}
+nav.log a.danger:hover{background:var(--red-dim)}
+nav.log .sha{color:var(--orange);font-weight:600;flex:none}
+nav.log a.danger .sha{color:var(--red)}
+@media (max-width:920px){nav.log{position:static;height:auto;border-right:none;border-bottom:1px solid var(--rail);padding:1.25rem}}
+
+/* ------- hero terminal ------- */
+header.hero{padding:4rem 0 3rem}
+.term{background:var(--code-bg);border-radius:12px;max-width:46rem;
+  box-shadow:0 12px 40px rgba(27,31,35,.18);overflow:hidden;margin-bottom:2rem}
+.term-bar{display:flex;gap:.45rem;align-items:center;padding:.65rem .9rem;background:#23262d}
+.term-bar .dot{width:12px;height:12px;border-radius:50%}
+.term-bar .d1{background:#ff5f57}.term-bar .d2{background:#febc2e}.term-bar .d3{background:#28c840}
+.term-bar .title{margin-left:auto;margin-right:auto;font-family:var(--mono);font-size:.7rem;color:var(--code-comment)}
+.term-body{padding:1.1rem 1.2rem 1.3rem;font-family:var(--mono);font-size:.85rem;line-height:1.8;color:var(--code-ink);min-height:9.5rem}
+.term-body .dollar{color:#7ee787;font-weight:700}
+.term-body .err{color:#ff7b72}
+.term-body .ok{color:#7ee787}
+.cursor{display:inline-block;width:.55em;height:1.1em;background:var(--code-ink);vertical-align:text-bottom;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+header.hero h1{font-family:var(--mono);font-weight:700;font-size:clamp(1.9rem,4.6vw,3rem);line-height:1.1;letter-spacing:-.02em}
+header.hero h1 .flag{color:var(--orange)}
+header.hero p.sub{margin-top:1rem;font-size:1.15rem;color:var(--ink-soft);max-width:38rem}
+header.hero .meta{margin-top:1.25rem;font-family:var(--mono);font-size:.75rem;color:var(--ink-soft);display:flex;gap:1.5rem;flex-wrap:wrap}
+header.hero .meta .add{color:var(--green)}header.hero .meta .del{color:var(--red)}
+
+/* ------- sections ------- */
+section{padding:3.5rem 0 1rem;border-top:1px solid var(--rail)}
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .5s,transform .5s}
+.reveal.in{opacity:1;transform:none}
+.commit-line{font-family:var(--mono);font-size:.78rem;margin-bottom:.6rem;display:flex;gap:.6rem;align-items:baseline}
+.commit-line .sha{color:var(--orange);font-weight:600}
+.commit-line .tag{border:1px solid var(--orange);color:var(--orange);border-radius:99px;padding:0 .5rem;font-size:.7rem}
+section.danger .commit-line .sha,section.danger .commit-line .tag{color:var(--red);border-color:var(--red)}
+h2{font-family:var(--mono);font-weight:700;letter-spacing:-.01em;font-size:clamp(1.4rem,3vw,1.9rem);line-height:1.25;margin-bottom:1.25rem}
+h3{font-family:var(--mono);font-weight:600;font-size:1.05rem;margin:2.25rem 0 .75rem}
+h3 .hash{color:var(--orange)}
+section.danger h3 .hash{color:var(--red)}
+p{margin-bottom:1rem;max-width:70ch}
+ul,ol{margin:0 0 1rem 1.4rem;max-width:68ch}
+li{margin-bottom:.4rem}
+li::marker{color:var(--orange)}
+strong{font-weight:600}
+
+code{font-family:var(--mono);font-size:.86em;background:var(--paper-dim);border:1px solid var(--rail);border-radius:4px;padding:.08em .35em}
+pre{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;
+  padding:1.1rem 1.2rem;margin:1.1rem 0 1.5rem;overflow-x:auto;
+  font-family:var(--mono);font-size:.82rem;line-height:1.65;max-width:48rem}
+pre code{background:none;border:none;padding:0;font-size:1em;color:inherit}
+pre .c{color:var(--code-comment)}pre .k{color:var(--code-accent)}pre .g{color:#7ee787}pre .r{color:#ff7b72}
+pre .copy{position:absolute;top:.55rem;right:.6rem;font-family:var(--mono);font-size:.68rem;
+  background:transparent;color:var(--code-comment);border:1px solid #30363d;border-radius:6px;
+  padding:.2rem .55rem;cursor:pointer}
+pre .copy:hover{color:var(--code-ink);border-color:var(--code-comment)}
+
+.note,.fix,.alarm{border-radius:10px;padding:1rem 1.25rem;margin:1.25rem 0 1.5rem;max-width:46rem}
+.note{background:var(--paper-dim);border:1px solid var(--rail)}
+.fix{background:var(--green-dim);border:1px solid #b7e3c0}
+.alarm{background:var(--red-dim);border:1px solid #f3c2c7}
+.lbl{display:block;font-family:var(--mono);font-weight:700;font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.35rem}
+.fix .lbl{color:var(--green)}.alarm .lbl{color:var(--red)}.note .lbl{color:var(--ink-soft)}
+.note p:last-child,.fix p:last-child,.alarm p:last-child{margin-bottom:0}
+
+table{border-collapse:collapse;width:100%;max-width:48rem;margin:1.1rem 0 1.75rem;font-size:.92rem}
+th,td{border:1px solid var(--rail);padding:.55rem .8rem;text-align:left;vertical-align:top}
+th{font-family:var(--mono);font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;background:var(--paper-dim)}
+td code{white-space:nowrap}
+td.y{color:var(--green);font-weight:600}td.n{color:var(--red);font-weight:600}
+@media (max-width:700px){.tscroll{overflow-x:auto}.tscroll table{min-width:560px}}
+
+/* ------- wanted posters ------- */
+.wanted-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:1.1rem;margin:1.5rem 0 2rem;max-width:52rem}
+.poster{border:2px solid var(--ink);border-radius:4px;background:var(--paper);padding:1.1rem 1.2rem 1.25rem;position:relative;
+  box-shadow:4px 4px 0 var(--rail);transition:transform .15s,box-shadow .15s}
+.poster:hover{transform:rotate(-1deg) translateY(-3px);box-shadow:7px 8px 0 var(--orange-dim)}
+.poster .wanted-lbl{font-family:var(--mono);font-weight:700;font-size:.68rem;letter-spacing:.28em;text-transform:uppercase;
+  text-align:center;color:var(--red);border-bottom:2px solid var(--ink);padding-bottom:.45rem;margin-bottom:.8rem}
+.poster .mug{font-size:3rem;text-align:center;display:block;line-height:1;margin-bottom:.6rem;filter:grayscale(.15)}
+.poster:hover .mug{filter:none}
+.poster h4{font-family:var(--mono);font-size:.95rem;text-align:center;margin-bottom:.7rem;line-height:1.3}
+.poster .crime{font-size:.88rem;color:var(--ink-soft);margin-bottom:.7rem;min-height:3.4em}
+.poster .bounty{font-family:var(--mono);font-size:.78rem;background:var(--green-dim);border:1px solid #b7e3c0;
+  border-radius:6px;padding:.5rem .65rem;line-height:1.5}
+.poster .bounty b{color:var(--green);text-transform:uppercase;font-size:.66rem;letter-spacing:.08em;display:block}
+
+/* ------- merge vs rebase ------- */
+.versus{display:grid;grid-template-columns:1fr 1fr;gap:1.1rem;margin:1.25rem 0 1.5rem;max-width:48rem}
+@media (max-width:700px){.versus{grid-template-columns:1fr}}
+.vcard{border:1px solid var(--rail);border-radius:10px;padding:1.1rem 1.2rem}
+.vcard h4{font-family:var(--mono);font-size:1rem;margin-bottom:.5rem}
+.vcard.merge h4{color:var(--blue)}.vcard.rebase h4{color:var(--orange)}
+.vcard p{font-size:.95rem;margin-bottom:.5rem}.vcard p:last-child{margin-bottom:0}
+figure{margin:1.5rem 0 2rem;max-width:48rem}
+figure svg{width:100%;height:auto;display:block}
+figcaption{font-family:var(--mono);font-size:.72rem;color:var(--ink-soft);margin-top:.5rem}
+
+/* ------- yolo generator ------- */
+.yolo-box{background:var(--code-bg);border-radius:10px;padding:1.2rem 1.3rem;max-width:46rem;margin:1.25rem 0 1.75rem}
+.yolo-box .out{font-family:var(--mono);font-size:.85rem;color:var(--code-ink);min-height:2.2em;margin-bottom:.9rem}
+.yolo-box .out .dollar{color:#7ee787;font-weight:700}
+.yolo-btn{font-family:var(--mono);font-weight:600;font-size:.8rem;background:var(--orange);color:#fff;border:none;
+  border-radius:8px;padding:.55rem 1.1rem;cursor:pointer;transition:transform .1s}
+.yolo-btn:hover{transform:scale(1.04)}
+.yolo-btn:active{transform:scale(.96)}
+
+/* ------- quiz ------- */
+.quiz{max-width:46rem}
+.q{border:1px solid var(--rail);border-radius:10px;padding:1.1rem 1.25rem;margin-bottom:1rem;background:var(--paper)}
+.q .qt{font-weight:600;margin-bottom:.7rem}
+.q .qt .qnum{font-family:var(--mono);color:var(--orange);font-weight:700;margin-right:.4rem}
+.opt{display:flex;gap:.6rem;align-items:baseline;font-family:var(--mono);font-size:.84rem;
+  border:1px solid var(--rail);border-radius:8px;padding:.5rem .8rem;margin-bottom:.45rem;cursor:pointer;transition:background .12s}
+.opt:hover{background:var(--paper-dim)}
+.opt input{accent-color:var(--orange)}
+.q.graded .opt{cursor:default;pointer-events:none}
+.q.graded .opt.right{background:var(--green-dim);border-color:var(--green)}
+.q.graded .opt.wrong-pick{background:var(--red-dim);border-color:var(--red)}
+.q .why{display:none;font-size:.9rem;margin-top:.6rem;color:var(--ink-soft)}
+.q.graded .why{display:block}
+.quiz-actions{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;margin:1.25rem 0}
+.grade-btn{font-family:var(--mono);font-weight:700;font-size:.85rem;background:var(--ink);color:#fff;border:none;
+  border-radius:8px;padding:.65rem 1.3rem;cursor:pointer}
+.grade-btn:hover{background:var(--orange)}
+#rank{font-family:var(--mono);font-size:.95rem;font-weight:700;display:none}
+#rank.show{display:block;animation:pop .35s ease}
+@keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+
+/* ------- panic button ------- */
+#panic{position:fixed;bottom:1.4rem;right:1.4rem;z-index:50;font-family:var(--mono);font-weight:700;font-size:.8rem;
+  background:var(--red);color:#fff;border:none;border-radius:99px;padding:.8rem 1.3rem;cursor:pointer;
+  box-shadow:0 6px 20px rgba(207,34,46,.45);animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+#panic:hover{animation:shake .35s linear infinite}
+@keyframes shake{0%,100%{transform:translateX(0) rotate(0)}25%{transform:translateX(-2px) rotate(-2deg)}75%{transform:translateX(2px) rotate(2deg)}}
+body.panic-flash{animation:flashbg .6s ease 2}
+@keyframes flashbg{0%,100%{background:var(--paper)}50%{background:var(--red-dim)}}
+
+details{border:1px solid var(--rail);border-radius:10px;padding:.9rem 1.2rem;margin-bottom:.75rem;max-width:46rem}
+details summary{cursor:pointer;font-weight:600}
+details[open]{background:var(--paper-dim)}
+details p{margin:.75rem 0 0}
+
+footer{border-top:1px solid var(--rail);padding:2.5rem 0;font-family:var(--mono);font-size:.78rem;color:var(--ink-soft)}
+footer .zero{color:var(--orange);cursor:pointer}
+footer .zero:hover{text-decoration:underline}
+
+/* confetti */
+.confetti{position:fixed;top:-12px;width:9px;height:14px;z-index:99;pointer-events:none;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(105vh) rotate(720deg)}}
+</style>
+</head>
+<body>
+
+<button id="panic" type="button" aria-label="Panic — jump to disaster recovery">😱 PANIC</button>
+
+<div class="wrap">
+
+<nav class="log" aria-label="Table of contents">
+  <div class="cmd"><b>$ git log</b> --oneline<br>--this-guide</div>
+  <a href="#why"><span class="sha">a1f3e0d</span> why this exists</a>
+  <a href="#day-zero"><span class="sha">decaf01</span> day zero: the loop</a>
+  <a href="#what-is-git"><span class="sha">b7c2914</span> what git actually is</a>
+  <a href="#mental-model"><span class="sha">c4d88a2</span> how git thinks</a>
+  <a href="#states"><span class="sha">d92b1f7</span> the three file states</a>
+  <a href="#commands"><span class="sha">e15c6b3</span> commands you'll use</a>
+  <a href="#ide"><span class="sha">c0ffee1</span> IDE &amp; GUI tools</a>
+  <a href="#setup"><span class="sha">f6a09d1</span> first-time setup</a>
+  <a href="#auth"><span class="sha">07b3e5c</span> authentication</a>
+  <a href="#bad-habits" class="danger"><span class="sha">18d4f2a</span> the most wanted</a>
+  <a href="#merge-rebase"><span class="sha">29e5a3b</span> merge vs rebase</a>
+  <a href="#sos" class="danger"><span class="sha">3af6b4c</span> disaster recovery</a>
+  <a href="#strategies"><span class="sha">4b07c5d</span> branching strategies</a>
+  <a href="#pr"><span class="sha">5c18d6e</span> the PR review</a>
+  <a href="#quiz"><span class="sha">6d29e7f</span> boss fight 🐉</a>
+  <a href="#resources"><span class="sha">7e3af80</span> resources</a>
+</nav>
+
+<main>
+
+<header class="hero">
+  <div class="term" aria-hidden="true">
+    <div class="term-bar"><span class="dot d1"></span><span class="dot d2"></span><span class="dot d3"></span><span class="title">you@laptop: ~/that-one-project</span></div>
+    <div class="term-body" id="term-body"><div id="live"><span class="dollar">$</span> <span id="typer"></span><span class="cursor"></span></div></div>
+  </div>
+  <h1>git log <span class="flag">--survival-guide</span></h1>
+  <p class="sub">A field guide to Git: how it thinks, how people break it, and how to un-break it. Born as a team workshop, now a reference with a panic button. (Bottom right. You'll need it.)</p>
+  <div class="meta">
+    <span><span class="add">+16 sections</span>, <span class="del">−0 boring slides</span></span>
+    <span>reading time: as needed</span>
+    <span>blame: <code style="border:none;background:none;padding:0">git blame</code></span>
+  </div>
+</header>
+
+<!-- ============================================================ -->
+<section id="why" class="reveal">
+  <div class="commit-line"><span class="sha">a1f3e0d</span><span class="tag">read-me-first</span></div>
+  <h2>why this exists (and what it won't do)</h2>
+  <p><strong>This page will not teach you Git.</strong> Nothing you read passively will. Git lives in your hands, not your eyes — you learn it by branching, breaking things, and digging yourself out.</p>
+  <p>What this page <em>is</em>: the reference you open mid-panic, the cheat sheet for the command you half-remember, and a rogues' gallery of the mistakes everyone makes (so you can make more original ones).</p>
+  <p>If something still feels foreign after the self-study resources at the <a href="#resources">bottom</a>, ask. That's what teams are for.</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="day-zero" class="reveal">
+  <div class="commit-line"><span class="sha">decaf01</span><span class="tag">quickstart</span></div>
+  <h2>day zero: the loop you'll run forever</h2>
+  <p>Everything else on this page is theory, edge cases, and rescue gear. <em>This</em> is the actual job — the loop you'll run thousands of times. Memorize it, then come back for the rest.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 95" role="img" aria-label="The daily loop: clone once, then branch, edit, add, commit, push, PR, merge, repeat">
+      <g font-family="IBM Plex Mono, monospace" font-size="12">
+        <g fill="#f6f7f8" stroke="#4b5258"><rect x="10" y="30" width="78" height="36" rx="18"/></g>
+        <text x="49" y="52" text-anchor="middle" fill="#1b1f23">clone</text>
+        <text x="49" y="84" text-anchor="middle" fill="#7d8590" font-size="10">once</text>
+        <g fill="#fdeae5" stroke="#f05133">
+          <rect x="116" y="30" width="84" height="36" rx="18"/><rect x="228" y="30" width="72" height="36" rx="18"/>
+          <rect x="328" y="30" width="64" height="36" rx="18"/><rect x="420" y="30" width="88" height="36" rx="18"/>
+          <rect x="536" y="30" width="72" height="36" rx="18"/>
+        </g>
+        <text x="158" y="52" text-anchor="middle" fill="#1b1f23">branch</text>
+        <text x="264" y="52" text-anchor="middle" fill="#1b1f23">edit</text>
+        <text x="360" y="52" text-anchor="middle" fill="#1b1f23">add</text>
+        <text x="464" y="52" text-anchor="middle" fill="#1b1f23">commit</text>
+        <text x="572" y="52" text-anchor="middle" fill="#1b1f23">push</text>
+        <g fill="#e9f7ec" stroke="#2ea043"><rect x="636" y="30" width="74" height="36" rx="18"/></g>
+        <text x="673" y="52" text-anchor="middle" fill="#1b1f23">PR ✓</text>
+        <g stroke="#4b5258" stroke-width="1.5"><line x1="88" y1="48" x2="114" y2="48"/><line x1="200" y1="48" x2="226" y2="48"/><line x1="300" y1="48" x2="326" y2="48"/><line x1="392" y1="48" x2="418" y2="48"/><line x1="508" y1="48" x2="534" y2="48"/><line x1="608" y1="48" x2="634" y2="48"/></g>
+        <path d="M 673 30 C 673 2, 158 2, 158 28" fill="none" stroke="#7d8590" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <text x="410" y="22" text-anchor="middle" fill="#7d8590" font-size="10">merged → start the next one</text>
+      </g>
+    </svg>
+    <figcaption>fig 0 — the loop. edit↔add↔commit cycles many times before a push</figcaption>
+  </figure>
+
+  <pre><code><span class="c"># ── once per project ──────────────────────────────────────</span>
+git clone git@github.com:org/repo.git    <span class="c"># existing project (99% of consulting life)</span>
+cd repo                                  <span class="c"># (starting from zero instead? git init)</span>
+
+<span class="c"># ── the loop ──────────────────────────────────────────────</span>
+git switch -c feature/fuel-surcharge     <span class="c"># 1. branch — never work on main</span>
+<span class="c">#    ...edit code...                       2. do the actual job</span>
+git status                               <span class="c"># 3. ALWAYS look before you stage</span>
+git add -p                               <span class="c"># 4. stage what belongs in this commit</span>
+git commit -m "Add fuel surcharge to voyage cost"   <span class="c"># 5. snapshot it</span>
+<span class="c">#    ...repeat 2–5 until the feature works...</span>
+git push                                 <span class="c"># 6. share it (autoSetupRemote has your back)</span>
+<span class="c">#    7. open a PR — on the web, or: gh pr create</span></code></pre>
+
+  <div class="note">
+    <span class="lbl">If you only remember three things</span>
+    <p>① Never work directly on <code>main</code>. ② <code>git status</code> before every <code>add</code>. ③ Commit early and often — committed work is the only work Git can save. Everything else, this page can teach you mid-panic.</p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section id="what-is-git" class="reveal">
+  <div class="commit-line"><span class="sha">b7c2914</span><span class="tag">history</span></div>
+  <h2>what git actually is</h2>
+  <p>Git was born on <strong>April 7, 2005</strong> — don't do the math on how that compares to your age — written by Linus Torvalds in roughly two weeks of spite after the Linux kernel's licensing fallout with BitKeeper. It's now old enough to rent a car in most countries and still the default answer to "how do we collaborate on code?"</p>
+
+  <h3><span class="hash">##</span> the family tree of version control</h3>
+  <p><strong>1. Local VCS (e.g. GNU RCS).</strong> Keeps file changes as a series of patches on <em>your</em> machine. Problem: everything is local. It solves "I broke my own file" but not "we are seven people."</p>
+  <p><strong>2. Centralized VCS (SVN, Perforce…).</strong> One server holds all versioned files; everyone checks out from it. You get visibility and access control. Problem: a single point of failure. Server down? Nobody works. Disk corrupted? History gone. Still strictly better than RCS — at least collaboration exists.</p>
+  <p><strong>3. Distributed VCS (Git, Mercurial).</strong> You don't check out the latest snapshot — you clone the <em>entire repository with its full history</em>. Every clone is a complete backup. The server dies? Any laptop on the team can resurrect it.</p>
+
+  <div class="note">
+    <span class="lbl">Plot twist</span>
+    <p>What do most teams do with their fully-distributed tool? Push everything to one central remote and treat it like a CVCS with extra steps. That's fine — the distribution still buys you offline work, speed, and a backup on every laptop.</p>
+  </div>
+
+  <h3><span class="hash">##</span> git's design principles</h3>
+  <ul>
+    <li><strong>Speed</strong> — nearly everything runs locally, no network round-trips</li>
+    <li><strong>Simple design</strong> — a content-addressable filesystem with a VCS bolted on top</li>
+    <li><strong>Strong support for non-linear development</strong> — thousands of parallel branches without breaking a sweat</li>
+    <li><strong>Fully distributed</strong> — every clone is the whole repo</li>
+    <li><strong>Handles huge projects efficiently</strong> — built for the Linux kernel; your monorepo is fine</li>
+  </ul>
+</section>
+
+<!-- ============================================================ -->
+<section id="mental-model" class="reveal">
+  <div class="commit-line"><span class="sha">c4d88a2</span><span class="tag">mental-model</span></div>
+  <h2>how git thinks (and why you should stop panicking)</h2>
+
+  <h3><span class="hash">##</span> snapshots, not differences</h3>
+  <p>Most VCS tools store a base file plus a chain of diffs. Git stores a <strong>snapshot of your entire project</strong> at every commit. If a file hasn't changed, Git just links to the previous identical version. Your history is a <em>stream of snapshots</em>, each addressable by its hash.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 235" role="img" aria-label="Delta-based VCS stores a base file plus chained diffs; Git stores a full snapshot per commit, linking unchanged files to the previous version">
+      <g font-family="IBM Plex Mono, monospace" font-size="12">
+        <text x="10" y="20" font-weight="700" fill="#4b5258">delta-based VCS</text>
+        <rect x="10" y="35" width="90" height="34" rx="6" fill="#f6f7f8" stroke="#4b5258"/>
+        <text x="55" y="56" text-anchor="middle" fill="#1b1f23">file A</text>
+        <g fill="#fdeae5" stroke="#f05133">
+          <rect x="140" y="35" width="70" height="34" rx="6"/>
+          <rect x="250" y="35" width="70" height="34" rx="6"/>
+          <rect x="360" y="35" width="70" height="34" rx="6"/>
+        </g>
+        <text x="175" y="56" text-anchor="middle" fill="#1b1f23">Δ1</text>
+        <text x="285" y="56" text-anchor="middle" fill="#1b1f23">Δ2</text>
+        <text x="395" y="56" text-anchor="middle" fill="#1b1f23">Δ3</text>
+        <g stroke="#4b5258" stroke-width="1.5">
+          <line x1="100" y1="52" x2="138" y2="52"/><line x1="210" y1="52" x2="248" y2="52"/><line x1="320" y1="52" x2="358" y2="52"/>
+        </g>
+        <text x="470" y="56" fill="#4b5258" font-size="11">replay diffs to rebuild a version</text>
+
+        <text x="10" y="115" font-weight="700" fill="#f05133">git: stream of snapshots</text>
+        <g fill="#ffffff" stroke="#d4d8dc">
+          <rect x="10" y="130" width="130" height="90" rx="8"/>
+          <rect x="200" y="130" width="130" height="90" rx="8"/>
+          <rect x="390" y="130" width="130" height="90" rx="8"/>
+        </g>
+        <text x="75" y="148" text-anchor="middle" fill="#f05133" font-weight="700">commit 1</text>
+        <text x="265" y="148" text-anchor="middle" fill="#f05133" font-weight="700">commit 2</text>
+        <text x="455" y="148" text-anchor="middle" fill="#f05133" font-weight="700">commit 3</text>
+        <g font-size="11">
+          <text x="25" y="172" fill="#1b1f23">A v1</text><text x="25" y="192" fill="#1b1f23">B v1</text><text x="25" y="212" fill="#1b1f23">C v1</text>
+          <text x="215" y="172" fill="#2ea043">A v2</text><text x="215" y="192" fill="#7d8590" font-style="italic">B v1 ⇠link</text><text x="215" y="212" fill="#7d8590" font-style="italic">C v1 ⇠link</text>
+          <text x="405" y="172" fill="#7d8590" font-style="italic">A v2 ⇠link</text><text x="405" y="192" fill="#2ea043">B v2</text><text x="405" y="212" fill="#2ea043">C v2</text>
+        </g>
+        <g stroke="#4b5258" stroke-width="1.5">
+          <line x1="140" y1="175" x2="198" y2="175"/><line x1="330" y1="175" x2="388" y2="175"/>
+        </g>
+        <text x="545" y="180" fill="#4b5258" font-size="11">unchanged files = links,</text>
+        <text x="545" y="196" fill="#4b5258" font-size="11">not copies — cheap &amp; fast</text>
+      </g>
+    </svg>
+    <figcaption>fig 2 — deltas vs snapshots: why git branching is instant</figcaption>
+  </figure>
+
+  <h3><span class="hash">##</span> (almost) everything is local</h3>
+  <ul>
+    <li>No network delay — browsing history, diffing, branching all happen on disk</li>
+    <li>You can work on a plane, off VPN, in a bunker. Commit locally, push later</li>
+  </ul>
+
+  <h3><span class="hash">##</span> integrity &amp; immutability</h3>
+  <p>Everything in Git is checksummed before storage and referenced by that checksum. Git is fundamentally <strong>add-only</strong>: once you commit, you have to try <em>really hard</em> to permanently delete anything.</p>
+  <div class="fix">
+    <span class="lbl">The takeaway</span>
+    <p><strong>If you committed it, it is almost certainly recoverable.</strong> So don't panic. The dangerous window is <em>before</em> you commit — uncommitted work has no safety net.</p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section id="states" class="reveal">
+  <div class="commit-line"><span class="sha">d92b1f7</span><span class="tag">core</span></div>
+  <h2>the three file states (+ the side drawer)</h2>
+  <p>Every tracked file is in exactly one of three states:</p>
+  <ul>
+    <li><strong>Modified</strong> — changed, but not recorded anywhere. Zero safety net.</li>
+    <li><strong>Staged</strong> — marked, in its <em>current</em> version, to go into the next snapshot.</li>
+    <li><strong>Committed</strong> — safely stored in your local database.</li>
+  </ul>
+
+  <figure>
+    <svg viewBox="0 0 720 240" role="img" aria-label="Diagram of git areas: working directory, staging area, local repository, remote">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#4b5258"/>
+        </marker>
+      </defs>
+      <g font-family="IBM Plex Mono, monospace" font-size="13">
+        <rect x="10" y="40" width="150" height="60" rx="8" fill="#fdeae5" stroke="#f05133"/>
+        <text x="85" y="66" text-anchor="middle" fill="#1b1f23">working</text>
+        <text x="85" y="84" text-anchor="middle" fill="#1b1f23">directory</text>
+        <rect x="220" y="40" width="150" height="60" rx="8" fill="#fff8e1" stroke="#d4a017"/>
+        <text x="295" y="66" text-anchor="middle" fill="#1b1f23">staging</text>
+        <text x="295" y="84" text-anchor="middle" fill="#1b1f23">area</text>
+        <rect x="430" y="40" width="150" height="60" rx="8" fill="#e9f7ec" stroke="#2ea043"/>
+        <text x="505" y="66" text-anchor="middle" fill="#1b1f23">local</text>
+        <text x="505" y="84" text-anchor="middle" fill="#1b1f23">repository</text>
+        <rect x="430" y="160" width="150" height="60" rx="8" fill="#e7f0fb" stroke="#0969da"/>
+        <text x="505" y="186" text-anchor="middle" fill="#1b1f23">remote</text>
+        <text x="505" y="204" text-anchor="middle" fill="#1b1f23">(origin)</text>
+        <line x1="160" y1="62" x2="218" y2="62" stroke="#4b5258" stroke-width="1.5" marker-end="url(#arr)"/>
+        <text x="189" y="52" text-anchor="middle" font-size="11" fill="#4b5258">add</text>
+        <line x1="370" y1="62" x2="428" y2="62" stroke="#4b5258" stroke-width="1.5" marker-end="url(#arr)"/>
+        <text x="399" y="52" text-anchor="middle" font-size="11" fill="#4b5258">commit</text>
+        <line x1="540" y1="100" x2="540" y2="158" stroke="#4b5258" stroke-width="1.5" marker-end="url(#arr)"/>
+        <text x="552" y="133" font-size="11" fill="#4b5258">push</text>
+        <line x1="470" y1="158" x2="470" y2="100" stroke="#4b5258" stroke-width="1.5" marker-end="url(#arr)"/>
+        <text x="404" y="133" font-size="11" fill="#4b5258">fetch</text>
+        <path d="M 430 200 H 85 V 102" fill="none" stroke="#4b5258" stroke-width="1.5" marker-end="url(#arr)"/>
+        <text x="240" y="192" font-size="11" fill="#4b5258">pull / checkout / merge</text>
+      </g>
+    </svg>
+    <figcaption>fig 1 — where your changes live, and which command moves them</figcaption>
+  </figure>
+
+  <h3><span class="hash">##</span> git stash — the side drawer</h3>
+  <p>Not ready to commit, but need to switch context? <strong>Stash it.</strong> Stash is a side drawer where work-in-progress waits without polluting history.</p>
+  <ul>
+    <li><strong>Dirty modified changes</strong> blocking a branch switch you don't want to commit yet</li>
+    <li><strong>Staged-but-not-final</strong> work — you ran <code>git add</code> but haven't finished the thought</li>
+  </ul>
+  <pre><code><span class="c"># tuck it away</span>
+git stash
+<span class="c"># ...switch branches, fight a fire, come back...</span>
+git stash pop</code></pre>
+</section>
+
+<!-- ============================================================ -->
+<section id="commands" class="reveal">
+  <div class="commit-line"><span class="sha">e15c6b3</span><span class="tag">commands</span></div>
+  <h2>145 commands. you need about 12.</h2>
+  <p>Git ships a small army: <strong>44</strong> main porcelain commands (<code>add</code>, <code>commit</code>, <code>pull</code>, <code>push</code>…), <strong>11</strong> manipulators (<code>config</code>, <code>reflog</code>, <code>replace</code>…), <strong>17</strong> interrogators (<code>blame</code>, <code>fsck</code>, <code>rerere</code>…), <strong>10</strong> interactors (<code>send-email</code>, <code>p4</code>, <code>svn</code>…) — plus ~63 plumbing commands underneath (<code>cat-file</code>, <code>update-ref</code>, <code>fetch-pack</code>…).</p>
+  <p>Will you need them all? <strong>Probably not.</strong> But knowing the iceberg exists helps when you eventually need <code>reflog</code> at 2am.</p>
+
+  <h3><span class="hash">##</span> the many faces of <code>git add</code></h3>
+  <div class="tscroll">
+  <table>
+    <thead><tr><th>Command</th><th>New files</th><th>Modified</th><th>Deleted</th><th>Scope</th></tr></thead>
+    <tbody>
+      <tr><td><code>git add &lt;file&gt;</code></td><td class="y">Yes</td><td class="y">Yes</td><td class="y">Yes</td><td>Single file</td></tr>
+      <tr><td><code>git add .</code></td><td class="y">Yes</td><td class="y">Yes</td><td class="y">Yes</td><td>Current folder</td></tr>
+      <tr><td><code>git add --all / -A</code></td><td class="y">Yes</td><td class="y">Yes</td><td class="y">Yes</td><td>Entire project</td></tr>
+      <tr><td><code>git add -u</code></td><td class="n">No</td><td class="y">Yes</td><td class="y">Yes</td><td>Entire project</td></tr>
+      <tr><td><code>git add -p</code></td><td class="n">No</td><td>Partial</td><td class="n">No</td><td>Chunk-by-chunk</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p><code>git add -p</code> is the underrated one: it walks through each hunk asking "stage this?". It's how you turn a messy working directory into clean, atomic commits. A session looks like this:</p>
+  <pre><code><span class="c">$ git add -p</span>
+diff --git a/pricing.py b/pricing.py
+@@ -12,7 +12,7 @@ def voyage_cost(base):
+-    return base
++    return base * vat
+<span class="g">(1/3) Stage this hunk [y,n,q,a,d,s,e,?]?</span> y    <span class="c"># yes — this belongs in the commit</span>
+@@ -40,4 +40,5 @@
++    print("DEBUG: remove me")
+<span class="g">(2/3) Stage this hunk [y,n,q,a,d,s,e,?]?</span> n    <span class="c"># no — debug junk stays out</span></code></pre>
+
+  <h3><span class="hash">##</span> git fetch vs git pull</h3>
+  <p><code>fetch</code> downloads new commits into your <em>remote-tracking refs</em> and touches nothing else — your working directory stays exactly as it was. <code>pull</code> is <code>fetch</code> + immediately merging (or rebasing) into your current branch. When in doubt, <code>fetch</code> first and look around; it's the read-only option.</p>
+
+  <h3><span class="hash">##</span> git diff — use whatever shows you the truth</h3>
+  <p>Run <code>git difftool --tool-help</code> to see what UI tools your system offers, use your IDE's built-in diff, or stay in the terminal if you enjoy feeling hardcore.</p>
+<p>And the question you'll ask most often — <em>"what did this commit change?"</em> — has two equivalent approaches; know both, because you'll meet both in the wild:</p>
+<pre><code><span class="c"># approach 1 — the single-commit habit: message + diff in one command</span>
+git show 4a1f3e0
+
+<span class="c"># approach 2 — the explicit before→after form (~ means "parent of")</span>
+git diff 4a1f3e0~ 4a1f3e0</code></pre>
+<p>Same output, different superpowers: <code>show</code> is the fast reflex for one commit; the <code>diff A B</code> form generalizes to comparing <em>any</em> two points — branches, tags, "main vs my branch" (<code>git diff main..HEAD</code>).</p>
+  <div class="note">
+    <span class="lbl">House rule</span>
+    <p>Nobody cares whether you use the CLI, an IDE, or a GUI — <strong>as long as you can figure out the state of your project through it.</strong> The tool is not the skill. Knowing what's modified, staged, and committed is.</p>
+  </div>
+
+  <h3><span class="hash">##</span> bonus: <code>checkout</code> has been split (and it's a good thing)</h3>
+  <p><code>git checkout</code> historically did three unrelated jobs — switch branches, discard file changes, and detach HEAD — which is exactly why people kept hurting themselves with it. Modern Git (2.23+) splits the jobs into two commands that can't be confused:</p>
+  <pre><code><span class="c"># switch branches (was: git checkout branch)</span>
+git switch feature-x
+git switch -c new-branch        <span class="c"># create + switch (was: checkout -b)</span>
+
+<span class="c"># discard changes in a file (was: git checkout -- file) — DESTRUCTIVE, no undo</span>
+git restore pricing.py
+<span class="c"># unstage a file (was: git reset HEAD file)</span>
+git restore --staged pricing.py</code></pre>
+  <p>The old <code>checkout</code> syntax still works everywhere — you'll see it in this guide and all over the internet — but if you're building habits from scratch, build the new ones.</p>
+
+  <h3><span class="hash">##</span> archaeology: "who wrote this, and WHY?"</h3>
+  <p>Consulting survival skill: you'll spend more time reading inherited code than writing new code. Git remembers everything — ask it:</p>
+  <pre><code><span class="c"># who last touched each line of this file (and in which commit)</span>
+git blame pricing.py
+git blame -L 40,60 pricing.py            <span class="c"># just lines 40–60, less noise</span>
+
+<span class="c"># the pickaxe: find every commit that ADDED or REMOVED this string —
+# the answer to "when did this magic number appear and what was the excuse"</span>
+git log -S "0.85" --oneline pricing.py
+
+<span class="c"># full history of a file, surviving renames</span>
+git log --follow --oneline -- pricing.py</code></pre>
+  <p>Pro move: when <code>blame</code> points at a reformatting commit, <code>git blame --ignore-rev &lt;sha&gt;</code> (or an <code>--ignore-revs-file</code>) skips it and shows you the <em>real</em> author. The commit message you find at the end of the dig is why the <a href="#pr">commit message section</a> exists.</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="ide" class="reveal">
+  <div class="commit-line"><span class="sha">c0ffee1</span><span class="tag">no-terminal-required</span></div>
+  <h2>IDE &amp; GUI tools: git without the terminal</h2>
+  <p>Honesty time: most people run most of their git from the IDE, and that's <em>fine</em> — the house rule stands. The buttons run the exact same git underneath. What matters is knowing <strong>which command the button fires</strong>, because the IDE won't be there to explain itself when something goes sideways.</p>
+
+  <h3><span class="hash">##</span> the rosetta stone</h3>
+  <div class="tscroll">
+  <table>
+    <thead><tr><th>You want to…</th><th>CLI</th><th>VS Code</th><th>JetBrains (PyCharm/IntelliJ)</th></tr></thead>
+    <tbody>
+      <tr><td>See what changed</td><td><code>git status</code> / <code>diff</code></td><td>Source Control panel — click a file for the diff</td><td>Commit tool window (⌘0 / Alt+0)</td></tr>
+      <tr><td>Stage selectively</td><td><code>git add -p</code></td><td>Open diff → right-click a change → "Stage Selected Ranges"</td><td>Tick checkboxes per file or per chunk in the diff</td></tr>
+      <tr><td>Commit</td><td><code>git commit</code></td><td>Message box + ✓ Commit</td><td>Commit button (⌘K / Ctrl+K)</td></tr>
+      <tr><td>Branch / switch</td><td><code>git switch -c</code></td><td>Branch name in the status bar → New Branch</td><td>Git widget (bottom right) → New Branch</td></tr>
+      <tr><td>Push / pull</td><td><code>git push</code> / <code>pull</code></td><td>"Sync Changes" — careful, see below</td><td>Push (⌘⇧K / Ctrl+Shift+K), Update Project</td></tr>
+      <tr><td>See the branch graph</td><td><code>git lg</code> (our alias)</td><td>Git Graph extension / GitLens</td><td>Git → Log tab (built in, excellent)</td></tr>
+      <tr><td>Blame a line</td><td><code>git blame</code></td><td>GitLens inline annotations</td><td>Right-click gutter → Annotate with Git Blame</td></tr>
+      <tr><td>Resolve conflicts</td><td>edit markers + <code>add</code></td><td>Merge editor: Accept Current / Incoming / Both</td><td>Conflicts dialog — 3-pane merge, magic-wand auto-resolve</td></tr>
+      <tr><td>Interactive rebase</td><td><code>git rebase -i</code></td><td>GitLens (Interactive Rebase Editor)</td><td>Log tab → right-click a commit → "Interactively Rebase from Here" 👑</td></tr>
+      <tr><td>Undo last commit</td><td><code>git reset --soft HEAD~1</code></td><td>Source Control "…" menu → Commit → Undo Last Commit</td><td>Log tab → right-click → Undo Commit</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3><span class="hash">##</span> worth knowing per tool</h3>
+  <ul>
+    <li><strong>VS Code:</strong> the built-in Source Control panel covers the loop; add <strong>GitLens</strong> (blame, history, interactive rebase) and you're at 95% of CLI power. The 3-way <strong>merge editor</strong> makes conflict resolution genuinely pleasant.</li>
+    <li><strong>JetBrains IDEs:</strong> arguably the best git UI in existence. The Log tab's right-click menu (interactive rebase, cherry-pick, reset, compare branches) replaces a dozen commands — and <strong>Local History</strong> is a safety net that catches even <em>uncommitted</em> work the CLI can't save.</li>
+    <li><strong>Standalone GUIs:</strong> <a href="https://git-fork.com/" target="_blank" rel="noopener">Fork</a>, <a href="https://www.sublimemerge.com/" target="_blank" rel="noopener">Sublime Merge</a>, <a href="https://www.gitkraken.com/" target="_blank" rel="noopener">GitKraken</a>, Sourcetree — great for visualizing big messy graphs even if you commit from the IDE.</li>
+    <li><strong>Databricks Git folders:</strong> the workspace git integration covers clone/branch/commit/push for notebook work — but it's a deliberately small subset (no rebase, no stash, no cherry-pick). The moment you need surgery, clone the repo locally and operate there.</li>
+  </ul>
+
+  <div class="alarm">
+    <span class="lbl">The buttons that bite</span>
+    <p><strong>VS Code's "Sync Changes" is a pull-then-push combo</strong> — two operations in one click, and the pull can start a merge you didn't expect. <strong>JetBrains' Push dialog has a Force Push dropdown</strong> hiding behind the normal button — everything in the <a href="#merge-rebase">golden rule</a> applies no matter how friendly the UI looks. The IDE makes git easier; it does not make git safer. And <strong>VS Code&#x27;s "Discard All Changes" runs a <code>git clean</code> under the hood</strong> — it deletes untracked files, which have no git safety net at all. Read that confirmation dialog like a contract.</p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section id="setup" class="reveal">
+  <div class="commit-line"><span class="sha">f6a09d1</span><span class="tag">setup</span></div>
+  <h2>first-time setup that pays rent forever</h2>
+
+  <h3><span class="hash">##</span> config levels</h3>
+  <p>Git reads configuration from three places; each level overrides the one before:</p>
+  <div class="tscroll">
+  <table>
+    <thead><tr><th>Level</th><th>File</th><th>Applies to</th></tr></thead>
+    <tbody>
+      <tr><td><code>git config --system</code></td><td><code>[path]/etc/gitconfig</code></td><td>Every user on the machine</td></tr>
+      <tr><td><code>git config --global</code></td><td><code>~/.gitconfig</code> or <code>~/.config/git/config</code></td><td>You, everywhere</td></tr>
+      <tr><td><code>git config --local</code></td><td><code>.git/config</code></td><td>That one repo</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3><span class="hash">##</span> a global config worth stealing</h3>
+  <pre><code><span class="k">[user]</span>
+    name = Your Full Name
+    email = your.email@company.com
+<span class="k">[core]</span>
+    <span class="c"># Prevents "works on my machine" line-ending drama between Windows/Mac/Linux</span>
+    autocrlf = input
+    <span class="c"># Use a modern editor for commit messages</span>
+    editor = code --wait
+<span class="k">[init]</span>
+    <span class="c"># Use 'main' instead of 'master' to align with modern CI/CD defaults</span>
+    defaultBranch = main
+<span class="k">[pull]</span>
+    <span class="c"># Rebase instead of merge when pulling — keeps history linear and clean</span>
+    rebase = true
+<span class="k">[push]</span>
+    <span class="c"># Auto-set the upstream so you never type --set-upstream again</span>
+    autoSetupRemote = true
+<span class="k">[fetch]</span>
+    <span class="c"># Clean up local refs to branches deleted on the server</span>
+    prune = true
+
+<span class="k">[rerere]</span>
+    <span class="c"># Git remembers how you resolved a conflict and replays it — rebases get easier</span>
+    enabled = true
+<span class="k">[diff]</span>
+    <span class="c"># Better hunk boundaries; highlights whitespace mistakes</span>
+    algorithm = histogram
+<span class="k">[alias]</span>
+    <span class="c"># A readable graph log to visualize branches</span>
+    lg = log --graph --abbrev-commit --decorate --all \
+         --format=format:'%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(white)%s%C(reset) %C(dim white)- %an%C(reset)%C(bold yellow)%d%C(reset)'
+    s = status -s
+    st = status
+    co = checkout
+    hist = log --pretty=format:"%h %ad | %s%d [%an]" --graph --date=short
+    uncommit = reset --soft HEAD~1
+    <span class="c"># For the brave: commit with a random message from whatthecommit.com</span>
+    yolo = "!f() { git commit -m \"$(curl -s https://whatthecommit.com/index.txt)\"; }; f"</code></pre>
+
+  <p>Speaking of that last alias — never tried it? Live a little (consequence-free edition):</p>
+  <div class="yolo-box">
+    <div class="out"><span class="dollar">$</span> git yolo<br><span id="yolo-out">[main 4a1f3e0] …press the button…</span></div>
+    <button class="yolo-btn" type="button" id="yolo-btn">🎲 git yolo</button>
+  </div>
+
+  <h3><span class="hash">##</span> .gitignore</h3>
+  <p>A <code>.gitignore</code> tells Git which paths to never track: build artifacts, virtual environments, IDE settings, OS junk. You can have <strong>as many as you want</strong> — one per directory, each applying to its subtree — plus a <em>global</em> one for personal noise, configured via <code>core.excludesFile</code>.</p>
+  <pre><code><span class="c"># typical Python project noise</span>
+__pycache__/
+*.py[cod]
+.venv/
+.env
+<span class="c"># IDE / OS junk → better in your *global* gitignore</span>
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+<span class="c"># test &amp; coverage output</span>
+.pytest_cache/
+.coverage
+htmlcov/</code></pre>
+  <div class="note">
+    <span class="lbl">Rule of thumb</span>
+    <p>Project-specific exclusions (build output, <code>.venv</code>) live in the repo's <code>.gitignore</code> so the whole team benefits. Personal-preference exclusions (your editor, your OS) live in your <em>global</em> gitignore — stop pushing your lifestyle choices into every project.</p>
+  </div>
+
+  <h3><span class="hash">##</span> .editorconfig — the peace treaty</h3>
+  <p>Not a Git feature, but it lives next to <code>.gitignore</code> and prevents half the diffs that shouldn't exist: tabs-vs-spaces wars, trailing whitespace, missing final newlines. Editors pick it up automatically.</p>
+  <pre><code>root = true
+
+<span class="k">[*]</span>
+indent_style = space
+indent_size = 4
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+<span class="k">[*.md]</span>
+trim_trailing_whitespace = false
+
+<span class="k">[{Makefile,*.go}]</span>
+indent_style = tab</code></pre>
+
+  <h3><span class="hash">##</span> pre-commit hooks — the bouncer at the door</h3>
+  <p>The wanted posters keep saying "use a pre-commit hook" — here's the actual thing. The <a href="https://pre-commit.com/" target="_blank" rel="noopener">pre-commit</a> framework runs checks on staged files <em>before</em> the commit lands, so the noise and the secrets never enter history at all:</p>
+  <pre><code><span class="c"># .pre-commit-config.yaml — in the repo root</span>
+<span class="k">repos:</span>
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files    <span class="c"># blocks the 400 MB parquet "oops"</span>
+      - id: detect-private-key         <span class="c"># blocks the career-limiting commit</span>
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.0
+    hooks:
+      - id: ruff                       <span class="c"># lint before it embarrasses you in review</span></code></pre>
+  <pre><code>pip install pre-commit
+pre-commit install        <span class="c"># wires it into .git/hooks — once per clone</span></code></pre>
+  <p>From then on, every <code>git commit</code> runs the gauntlet first. Failed check = no commit = nothing to apologize for later. (Pin <code>rev</code> versions to whatever's current — these will age.)</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="auth" class="reveal">
+  <div class="commit-line"><span class="sha">07b3e5c</span><span class="tag">auth</span></div>
+  <h2>authentication: HTTPS vs SSH</h2>
+  <p><strong>HTTPS + Personal Access Token (PAT).</strong> Best for beginners or anyone who doesn't want to touch config. You authenticate with a token, and your OS keychain (via Git Credential Manager) remembers it.</p>
+  <p><strong>SSH.</strong> The "pro" path. A public/private key pair authenticates you — set it up once, never get prompted again.</p>
+
+  <div class="tscroll">
+  <table>
+    <thead><tr><th>Feature</th><th>HTTPS + PAT</th><th>SSH</th></tr></thead>
+    <tbody>
+      <tr><td>Setup ease</td><td>Very easy</td><td>Moderate</td></tr>
+      <tr><td>Security</td><td>High</td><td>Very high</td></tr>
+      <tr><td>Convenience</td><td>Needs credential manager</td><td>Seamless after setup</td></tr>
+      <tr><td>Firewall friendly</td><td>Works almost anywhere</td><td>Sometimes blocked by corporate firewalls</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3><span class="hash">##</span> advanced: multiple accounts &amp; platforms</h3>
+  <p>The default setup breaks the moment you mix platforms (GitHub, GitLab, Bitbucket) or identities (work vs personal) — Git doesn't know which key opens which vault. The SSH config file fixes it:</p>
+  <pre><code><span class="c"># Step A — generate a unique key per identity (don't reuse one key for everything)</span>
+ssh-keygen -t ed25519 -C "work" -f ~/.ssh/id_work
+ssh-keygen -t ed25519 -C "personal" -f ~/.ssh/id_personal
+
+<span class="c"># Step B — map aliases in ~/.ssh/config</span>
+Host github.com-work
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_work
+
+Host github.com-personal
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_personal
+
+<span class="c"># Step C — clone using the alias</span>
+git clone git@github.com-work:org/repo.git
+git clone git@github.com-personal:username/repo.git</code></pre>
+
+  <h3><span class="hash">##</span> right email in the right repo: <code>includeIf</code></h3>
+  <p>Even with auth sorted, you can still commit to a personal project with your work email. Automate the fix with folders plus conditional config:</p>
+  <pre><code><span class="c"># ~/.gitconfig</span>
+<span class="k">[includeIf "gitdir:~/dev/work/"]</span>
+    path = ~/dev/work/.gitconfig-work
+
+<span class="c"># ~/dev/work/.gitconfig-work</span>
+<span class="k">[user]</span>
+    email = you@company.com</code></pre>
+<p>Consultants: scale the same trick per engagement — <code>[includeIf "gitdir:~/clients/&lt;name&gt;/"]</code> per client folder, and the right email follows the repo automatically. No more personal-gmail commits in a client audit trail.</p>
+
+  <div class="tscroll">
+  <table>
+    <thead><tr><th>Scenario</th><th>Best option</th></tr></thead>
+    <tbody>
+      <tr><td>Multiple accounts on one hub</td><td>SSH config aliases (<code>github-work</code>, <code>github-personal</code>)</td></tr>
+      <tr><td>Mixing platforms</td><td>Standard SSH config — hostnames are already unique</td></tr>
+      <tr><td>Different commit emails</td><td><code>includeIf</code> folder-based config</td></tr>
+      <tr><td>Quickest setup</td><td>GitHub CLI (<code>gh auth login</code>) — handles multi-account switching well</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section id="bad-habits" class="danger reveal">
+  <div class="commit-line"><span class="sha">18d4f2a</span><span class="tag">most-wanted</span></div>
+  <h2>git's most wanted</h2>
+  <p>Every team has these outlaws. The reward for catching one: cleaner history. The catch: they're usually in the mirror.</p>
+
+  <div class="wanted-grid">
+    <div class="poster">
+      <div class="wanted-lbl">★ Wanted ★</div>
+      <span class="mug">🪣</span>
+      <h4>The Kitchen Sink</h4>
+      <p class="crime"><b>Crime:</b> one commit, fourteen unrelated changes, message: <code>"updates"</code>. Unreviewable. Unrevertable.</p>
+      <div class="bounty"><b>The fix</b>Atomic commits: 1 commit == 1 logical change. <code>git add -p</code> is your scalpel.</div>
+    </div>
+    <div class="poster">
+      <div class="wanted-lbl">★ Wanted ★</div>
+      <span class="mug">😰</span>
+      <h4>The Nervous Committer</h4>
+      <p class="crime"><b>Crime:</b> twelve commits an hour: <code>"fix"</code>, <code>"fix again"</code>, <code>"actually fix"</code>, <code>"typo"</code>.</p>
+      <div class="bounty"><b>The fix</b><code>git commit --amend</code> for small fixes, or squash before merging to main.</div>
+    </div>
+    <div class="poster">
+      <div class="wanted-lbl">★ Wanted ★</div>
+      <span class="mug">🚩</span>
+      <h4>The Checkpointer</h4>
+      <p class="crime"><b>Crime:</b> commits <code>"temp"</code> just to switch branches, planning to undo it later. Narrator: they did not.</p>
+      <div class="bounty"><b>The fix</b><code>git stash</code>, switch, do the thing, come back, <code>git stash pop</code>.</div>
+    </div>
+    <div class="poster">
+      <div class="wanted-lbl">★ Wanted ★</div>
+      <span class="mug">👻</span>
+      <h4>Ghost of Merges Past</h4>
+      <p class="crime"><b>Crime:</b> merges main into the feature branch weekly; history is haunted by <code>"Merge branch 'main'…"</code>.</p>
+      <div class="bounty"><b>The fix</b>Rebase: move your feature on top of the latest main instead of dragging main to you.</div>
+    </div>
+    <div class="poster">
+      <div class="wanted-lbl">★ Wanted ★</div>
+      <span class="mug">🧟</span>
+      <h4>The Long-Lived Branch</h4>
+      <p class="crime"><b>Crime:</b> alive for three weeks. Technically a branch, practically a merge conflict with a countdown timer.</p>
+      <div class="bounty"><b>The fix</b>Small PRs. Branches live 1–3 days max. Pull/rebase from main daily.</div>
+    </div>
+    <div class="poster">
+      <div class="wanted-lbl">★ Wanted ★</div>
+      <span class="mug">📢</span>
+      <h4>The Noise Smuggler</h4>
+      <p class="crime"><b>Crime:</b> commits <code>.venv/</code>, <code>node_modules/</code>, 400&nbsp;MB of data, the occasional secret.</p>
+      <div class="bounty"><b>The fix</b>A proper <a href="#setup">.gitignore</a> + a pre-commit hook checking for large files &amp; secrets.</div>
+    </div>
+    <div class="poster">
+      <div class="wanted-lbl">★ Wanted ★</div>
+      <span class="mug">🤕</span>
+      <h4>The Dangling HEAD</h4>
+      <p class="crime"><b>Crime:</b> codes directly on a checked-out commit. Commits vanish into the ether on branch switch.</p>
+      <div class="bounty"><b>The fix</b>Check <code>git branch</code> before coding. Recovery via <code>reflog</code> works, but attention is cheaper.</div>
+    </div>
+    <div class="poster">
+      <div class="wanted-lbl">★ Accomplices ★</div>
+      <span class="mug">👯</span>
+      <h4>Honorable Mentions</h4>
+      <p class="crime"><b>Crimes:</b> committing straight to main on a team project; reflexive <code>git add .</code> without looking.</p>
+      <div class="bounty"><b>The fix</b>Feature branches + PRs with reviews. And <code>git status</code> first. Every time.</div>
+    </div>
+  </div>
+
+  <h3><span class="hash">##</span> bonus heist: rebasing a branch that fell far behind</h3>
+  <p>The painful way — <code>git rebase main</code> replays every commit one by one. 15 commits = up to 15 conflict rounds, many on code your later commits already superseded:</p>
+  <pre><code>A–B–C–D–E   (main)
+     └ x1–x2–…–x15   (feature)
+
+Conflict on x1... resolve
+Conflict on x2... resolve
+Conflict on x3... <span class="r">(you cry)</span></code></pre>
+  <p>The fast way — <strong>squash first, rebase second</strong>:</p>
+  <pre><code><span class="c"># Step 1: squash all commits into one</span>
+git rebase -i HEAD~15      <span class="c"># mark all but the first as 'squash'</span>
+<span class="c"># Step 2: rebase the single commit onto main → at most ONE conflict round</span>
+git rebase main
+<span class="c"># Bonus — surgical moves: replay only commits after old-base</span>
+git rebase --onto main old-base feature</code></pre>
+</section>
+
+<!-- ============================================================ -->
+<section id="merge-rebase" class="reveal">
+  <div class="commit-line"><span class="sha">29e5a3b</span><span class="tag">the-debate</span></div>
+  <h2>merge vs rebase: the eternal debate, settled in 60 seconds</h2>
+
+  <div class="versus">
+    <div class="vcard merge">
+      <h4>merge 🤝</h4>
+      <p><strong>Safe everywhere.</strong> Creates a merge commit. History shows what really happened, bumps and all.</p>
+    </div>
+    <div class="vcard rebase">
+      <h4>rebase ✂️</h4>
+      <p><strong>Rewrites history.</strong> Clean, linear log. <strong>Never on shared branches.</strong></p>
+    </div>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 720 155" role="img" aria-label="Merge creates a merge commit joining two lines; rebase replays feature commits on top of main as a straight line">
+      <g font-family="IBM Plex Mono, monospace" font-size="12">
+        <text x="10" y="20" font-weight="700" fill="#0969da">merge</text>
+        <line x1="30" y1="60" x2="330" y2="60" stroke="#d4d8dc" stroke-width="2"/>
+        <line x1="150" y1="60" x2="230" y2="110" stroke="#d4d8dc" stroke-width="2"/>
+        <line x1="230" y1="110" x2="330" y2="60" stroke="#d4d8dc" stroke-width="2"/>
+        <circle cx="60" cy="60" r="8" fill="#0969da"/>
+        <circle cx="150" cy="60" r="8" fill="#0969da"/>
+        <circle cx="240" cy="60" r="8" fill="#0969da"/>
+        <circle cx="200" cy="92" r="8" fill="#f05133"/>
+        <circle cx="230" cy="110" r="8" fill="#f05133"/>
+        <circle cx="330" cy="60" r="9" fill="#2ea043"/>
+        <text x="330" y="40" text-anchor="middle" fill="#2ea043">merge commit</text>
+        <text x="60" y="138" fill="#4b5258">history keeps both lines</text>
+        <text x="390" y="20" font-weight="700" fill="#f05133">rebase</text>
+        <line x1="410" y1="60" x2="700" y2="60" stroke="#d4d8dc" stroke-width="2"/>
+        <circle cx="440" cy="60" r="8" fill="#0969da"/>
+        <circle cx="510" cy="60" r="8" fill="#0969da"/>
+        <circle cx="580" cy="60" r="8" fill="#f05133"/>
+        <circle cx="650" cy="60" r="8" fill="#f05133"/>
+        <text x="615" y="40" text-anchor="middle" fill="#f05133">replayed on top</text>
+        <text x="440" y="138" fill="#4b5258">one straight line, rewritten SHAs</text>
+      </g>
+    </svg>
+    <figcaption>fig 3 — same work, two histories</figcaption>
+  </figure>
+
+  <h3><span class="hash">##</span> when to use which</h3>
+  <ul>
+    <li><strong>Updating your local feature branch with new main commits?</strong> → <code>rebase</code>. Clean history, fewer conflicts.</li>
+    <li><strong>Completing a feature and bringing it into main/develop?</strong> → <code>merge</code>. Preserves the merge event for posterity.</li>
+  </ul>
+  <div class="alarm">
+    <span class="lbl">The one rule that matters</span>
+    <p><strong>Never rebase a branch other people are working on.</strong> Rebasing rewrites SHAs; anyone holding the old SHAs is now living in a parallel universe. Your local feature branch is yours to rewrite freely — a shared branch is not.</p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section id="sos" class="danger reveal">
+  <div class="commit-line"><span class="sha">3af6b4c</span><span class="tag">SOS</span></div>
+  <h2>disaster recovery: don't panic 🧯</h2>
+  <p>Breathe. Remember the mental model: <strong>committed work is almost never lost.</strong> Find your scenario, run the recipe.</p>
+
+  <h3><span class="hash">##</span> first, know your <code>reset</code> — the three flavors</h3>
+  <p>Half the recipes below use <code>git reset</code>, and the flag is the difference between "all good" and "where did my afternoon go":</p>
+  <div class="tscroll">
+  <table>
+    <thead><tr><th>Command</th><th>Branch pointer</th><th>Staging area</th><th>Working directory</th></tr></thead>
+    <tbody>
+      <tr><td><code>git reset --soft HEAD~1</code></td><td class="y">moves back</td><td>changes kept, <strong>staged</strong></td><td>untouched</td></tr>
+      <tr><td><code>git reset HEAD~1</code> (mixed, default)</td><td class="y">moves back</td><td>cleared — changes <strong>unstaged</strong></td><td>untouched</td></tr>
+      <tr><td><code>git reset --hard HEAD~1</code></td><td class="y">moves back</td><td class="n">cleared</td><td class="n">⚠️ OVERWRITTEN — changes gone</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Rule of thumb: <code>--soft</code> means "undo the commit, keep my work". <code>--hard</code> means "I want the past back, destroy the present" — committed work survives via <code>reflog</code>, but <em>uncommitted</em> changes swept away by <code>--hard</code> are genuinely gone.</p>
+<h3><span class="hash">##</span> reset's feral cousin: <code>git clean</code></h3>
+<p><code>reset</code> touches what git tracks. <code>clean</code> deletes what git <em>doesn't</em> — which means no reflog, no recovery, no second chances. Always dry-run first:</p>
+<div class="tscroll">
+<table>
+<thead><tr><th>Command</th><th>Deletes</th><th>Run it?</th></tr></thead>
+<tbody>
+<tr><td><code>git clean -nd</code></td><td>nothing — prints what <em>would</em> go</td><td class="y">always, first</td></tr>
+<tr><td><code>git clean -fd</code></td><td>all untracked files &amp; directories</td><td>only after the dry run</td></tr>
+<tr><td><code>git clean -fdx</code></td><td>untracked AND ignored: <code>.env</code>, <code>.venv</code>, local data, IDE state</td><td class="n">last resort — that <code>-x</code> deletes your secrets file too</td></tr>
+</tbody>
+</table>
+</div>
+
+  <h3><span class="hash">##</span> "I committed to the wrong branch"</h3>
+  <p>Oops — you were on <code>main</code> instead of <code>feature-x</code>:</p>
+  <pre><code><span class="c"># Option A: reset main back to the remote's state (--hard drops the changes entirely)</span>
+git reset --soft origin/main
+<span class="c"># Option B: undo the last N commits, keeping changes staged</span>
+git reset --soft HEAD~N
+<span class="c"># Either way — your changes are now staged. Put them where they belong:</span>
+git checkout -b feature/my-changes
+git commit -m "committing on the proper branch"</code></pre>
+  <p>You can also <code>cherry-pick</code> + <code>revert</code> if you want to preserve history instead of rewriting it.</p>
+
+  <h3><span class="hash">##</span> "I deleted untracked files!"</h3>
+<pre><code><span class="c"># Untracked = git never knew them. Your hopes, in order:</span>
+<span class="c"># 1. Your editor's local history (VS Code: Timeline view / "Local History:</span>
+<span class="c">#    Find Entry to Restore"; JetBrains: right-click → Local History → Show History)</span>
+<span class="c"># 2. Anything that was ever STAGED may survive as a dangling blob:</span>
+git fsck --lost-found        <span class="c"># then inspect .git/lost-found/ for your content</span>
+<span class="c"># 3. OS backups (Time Machine etc.) — the last resort</span></code></pre>
+<p>Sometimes the honest answer is: it&#x27;s gone. The durable fix is a habit, not a command — commit early and often on a branch. WIP commits are free; you can squash them later.</p>
+<h3><span class="hash">##</span> "I committed a secret!"</h3>
+  <pre><code><span class="c"># Haven't pushed yet? Fix the file, then fold the fix into the last commit:</span>
+git commit --amend --no-edit</code></pre>
+  <div class="alarm">
+    <span class="lbl">Pushed already?</span>
+    <p><strong>ROTATE THE SECRET. NOW.</strong> Before any git surgery. Once it touched a remote, assume it's compromised — cleaning history is housekeeping, rotation is the actual fix. Then see "you pushed your mistake" below. One platform reality: on Azure DevOps, rewriting a branch with policies requires the <em>Force Push</em> permission — typically a repo admin, not you. One more reason rotation is the fix and history surgery is just hygiene.</p>
+  </div>
+
+  <h3><span class="hash">##</span> "I accidentally deleted my branch!"</h3>
+  <p>You thought you'd merged it, deleted it, and then realized you needed that code.</p>
+  <pre><code><span class="c"># 1. find the commit hash of the "lost" work</span>
+git reflog
+<span class="c"># 2. spot the last commit message you remember</span>
+<span class="c"># 3. resurrect it on a new branch</span>
+git checkout -b recovered-branch &lt;commit-hash&gt;</code></pre>
+  <p>What reflog actually shows you — a diary of everywhere HEAD has been:</p>
+  <pre><code><span class="c">$ git reflog</span>
+4a1f3e0 HEAD@{0}: checkout: moving from feature-x to main
+<span class="g">8b2c915 HEAD@{1}: commit: add vessel config parser   ← there it is</span>
+1c9d042 HEAD@{2}: commit: wire up sensor mapping
+7e3af80 HEAD@{3}: branch: Created from main</code></pre>
+  <p>Reflog records every move for ~90 days by default — which is why "permanently deleted" in Git usually means "I haven't looked in the reflog yet."</p>
+
+  <h3><span class="hash">##</span> "I'm stuck in a merge/rebase conflict and everything is broken!"</h3>
+  <p>The terminal says <code>(main|REBASING 1/5)</code> and your files are full of <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</code>:</p>
+  <pre><code>git merge --abort
+<span class="c"># or</span>
+git rebase --abort</code></pre>
+  <p>Both return you to the state before the operation started. Not sure how a merge/rebase will go? <strong>Take a backup branch first</strong> — it never hurts: <code>git branch backup-before-rebase</code>.</p>
+
+  <h3><span class="hash">##</span> actually resolving the conflict (abort is not a lifestyle)</h3>
+  <p>Sooner or later you have to go through, not around. Conflict markers are just three labeled regions:</p>
+  <pre><code><span class="r">&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</span>                          <span class="c">← your side ("ours")</span>
+price = base * 1.24
+<span class="r">=======</span>
+price = base * 1.20
+<span class="r">&gt;&gt;&gt;&gt;&gt;&gt;&gt; feature/new-vat</span>              <span class="c">← incoming side ("theirs")</span></code></pre>
+  <p>The four-step ritual:</p>
+  <pre><code><span class="c"># 1. see which files are conflicted</span>
+git status
+<span class="c"># 2. open each file, decide what the code SHOULD say
+#    (keep ours, keep theirs, or write something new) and delete ALL markers</span>
+<span class="c"># 3. tell git the file is resolved</span>
+git add pricing.py
+<span class="c"># 4. continue the operation</span>
+git merge --continue      <span class="c"># or: git rebase --continue</span></code></pre>
+  <div class="note">
+    <span class="lbl">Heads-up on rebase conflicts</span>
+    <p>During a rebase, "ours" and "theirs" feel <em>swapped</em>: you're replaying your commits <strong>onto</strong> main, so HEAD ("ours") is main's side and "theirs" is your own work. If a conflict resolution looks backwards, this is why — read the code, not just the labels.</p>
+  </div>
+
+  <h3><span class="hash">##</span> "I messed up my last commit message (typo)!"</h3>
+  <pre><code>git commit --amend -m "The correct message"</code></pre>
+  <p><strong>Careful:</strong> if you already pushed, this rewrites history and needs a force push. <strong>Never on a public/shared branch.</strong></p>
+
+  <h3><span class="hash">##</span> "undo a pushed commit — politely": <code>revert</code></h3>
+  <p>The recipes above rewrite history, which is forbidden on shared branches. <code>revert</code> doesn't rewrite anything — it adds a <em>new</em> commit that is the exact inverse of a bad one:</p>
+  <pre><code><span class="c"># find the offender</span>
+git log --oneline
+<span class="g">4a1f3e0</span> Add fuel surcharge        <span class="c">← this one broke prod</span>
+<span class="g">8b2c915</span> Wire up sensor mapping
+
+git revert 4a1f3e0
+<span class="c"># → new commit: "Revert 'Add fuel surcharge'" — history intact, damage undone</span>
+git push                          <span class="c"># plain push. no force. no team meeting.</span></code></pre>
+  <p>This is the default answer for "bad commit on main": the mistake stays visible in history (honest!) and nobody's clone breaks.</p>
+
+  <h3><span class="hash">##</span> "I need that one commit over there": <code>cherry-pick</code></h3>
+  <p>A fix landed on the wrong branch, or you need a single commit from a colleague's branch without taking the rest:</p>
+  <pre><code>git switch release/1.3            <span class="c"># go where the commit SHOULD be</span>
+git cherry-pick 4a1f3e0           <span class="c"># copy that one commit here (new SHA, same change)</span></code></pre>
+  <p>Classic use: a hotfix made on <code>main</code> that the release branch needs too. Note it's a <em>copy</em> — the commit now exists twice with two SHAs, which is fine occasionally and a mess as a lifestyle. If you're cherry-picking constantly, your branching strategy is filing a complaint.</p>
+
+  <div class="alarm">
+    <span class="lbl">The golden rule of git recovery</span>
+    <p><strong>If you have pushed your mistake to the server, talk to your team before you 'force push' a fix.</strong> <code>git push --force</code> rewrites history for everyone. It is the one command that can truly cause a disaster for others.</p>
+  </div>
+
+  <h3><span class="hash">##</span> you pushed your mistake — the options menu</h3>
+  <ul>
+    <li><strong><code>git revert &lt;commit-hash&gt;</code></strong> — a new commit that undoes the old one. <em>Pro: safe, doesn't rewrite history.</em> The default answer on shared branches.</li>
+    <li><strong><code>git push --force-with-lease</code></strong> — the polite force push: refuses to clobber commits you haven't seen. <em>Pro: clean history. Con: still never on main or shared develop.</em></li>
+    <li><strong><code>git-filter-repo</code></strong> — the nuclear option: erase all traces of a file from the history of every branch. Everyone must delete their clones and re-clone. <em>Pro: the mistake is genuinely gone. Con: disrupts the whole team.</em> Reserve for leaked secrets.</li>
+  </ul>
+
+  <h3><span class="hash">##</span> bonus weapon: <code>git bisect</code> — "WHEN did this break?"</h3>
+  <p>Something broke, you don't know which of the last 60 commits did it, and reading diffs is for people with free evenings. Bisect binary-searches your history for you:</p>
+  <pre><code>git bisect start
+git bisect bad                 <span class="c"># current commit is broken</span>
+git bisect good v1.2           <span class="c"># this old tag/commit was fine</span>
+<span class="c"># git checks out the midpoint — you test, then say:</span>
+git bisect good                <span class="c"># or: git bisect bad</span>
+<span class="c"># repeat ~6 times for 60 commits (log₂!) until:</span>
+<span class="g">4a1f3e0 is the first bad commit</span>
+git bisect reset               <span class="c"># back to where you started</span></code></pre>
+  <p>If you have a test command, <code>git bisect run pytest tests/test_pricing.py</code> automates the whole hunt while you get coffee.</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="strategies" class="reveal">
+  <div class="commit-line"><span class="sha">4b07c5d</span><span class="tag">workflow</span></div>
+  <h2>pick your branching strategy</h2>
+  <div class="note">
+    <span class="lbl">Day-one question</span>
+    <p>On any new project or team, always ask: <strong>"What git strategy do you use?"</strong> Before you push anything.</p>
+  </div>
+
+  <h3><span class="hash">##</span> 🏃 GitHub Flow — keep it simple</h3>
+  <p>Branch from <code>main</code> → short-lived PR (1–3 days) → merge → deploy immediately. Main is always deployable. No long-running branches.</p>
+  <figure>
+    <svg viewBox="0 0 720 120" role="img" aria-label="GitHub Flow: short feature branches leave main and merge straight back">
+      <g font-family="IBM Plex Mono, monospace" font-size="11">
+        <line x1="20" y1="50" x2="700" y2="50" stroke="#0969da" stroke-width="2.5"/>
+        <text x="20" y="36" fill="#0969da" font-weight="700">main (always deployable)</text>
+        <g stroke="#f05133" stroke-width="2" fill="none">
+          <path d="M120 50 C150 90, 200 90, 230 50"/>
+          <path d="M330 50 C360 90, 410 90, 440 50"/>
+          <path d="M520 50 C550 90, 600 90, 630 50"/>
+        </g>
+        <g fill="#0969da"><circle cx="60" cy="50" r="6"/><circle cx="120" cy="50" r="6"/><circle cx="230" cy="50" r="6"/><circle cx="330" cy="50" r="6"/><circle cx="440" cy="50" r="6"/><circle cx="520" cy="50" r="6"/><circle cx="630" cy="50" r="6"/></g>
+        <g fill="#f05133"><circle cx="160" cy="77" r="5"/><circle cx="190" cy="77" r="5"/><circle cx="370" cy="77" r="5"/><circle cx="400" cy="77" r="5"/><circle cx="560" cy="77" r="5"/><circle cx="590" cy="77" r="5"/></g>
+        <text x="143" y="108" fill="#f05133">PR, 1–3 days</text>
+        <text x="237" y="36" fill="#2ea043">↑ deploy</text>
+        <text x="447" y="36" fill="#2ea043">↑ deploy</text>
+        <text x="637" y="36" fill="#2ea043">↑ deploy</text>
+      </g>
+    </svg>
+    <figcaption>github flow — branch out, merge back, ship</figcaption>
+  </figure>
+  <p><strong>Best for:</strong> web apps, SaaS, small teams.</p>
+
+  <h3><span class="hash">##</span> 🏛️ GitFlow — rigid and safe</h3>
+  <p><code>main</code> + <code>develop</code> + <code>feature</code> + <code>release</code> + <code>hotfix</code> branches. Structured and predictable.</p>
+  <figure>
+    <svg viewBox="0 0 720 190" role="img" aria-label="GitFlow: features merge into develop, releases flow from develop to main, hotfixes branch from main">
+      <g font-family="IBM Plex Mono, monospace" font-size="11">
+        <line x1="20" y1="40" x2="700" y2="40" stroke="#0969da" stroke-width="2.5"/>
+        <text x="20" y="26" fill="#0969da" font-weight="700">main</text>
+        <line x1="20" y1="110" x2="700" y2="110" stroke="#d4a017" stroke-width="2.5"/>
+        <text x="20" y="96" fill="#d4a017" font-weight="700">develop</text>
+        <g stroke="#f05133" stroke-width="2" fill="none">
+          <path d="M110 110 C140 155, 200 155, 230 110"/>
+          <path d="M270 110 C300 155, 360 155, 390 110"/>
+        </g>
+        <text x="148" y="172" fill="#f05133">feature/*</text>
+        <path d="M440 110 C480 80, 520 70, 560 40" stroke="#2ea043" stroke-width="2" fill="none"/>
+        <text x="455" y="68" fill="#2ea043">release/1.3</text>
+        <path d="M560 40 C580 70, 600 90, 620 110" stroke="#2ea043" stroke-width="1.5" stroke-dasharray="4 3" fill="none"/>
+        <path d="M120 40 C140 18, 180 18, 200 40" stroke="#cf222e" stroke-width="2" fill="none"/>
+        <text x="128" y="14" fill="#cf222e">hotfix 🔥</text>
+        <g fill="#0969da"><circle cx="60" cy="40" r="6"/><circle cx="120" cy="40" r="6"/><circle cx="200" cy="40" r="6"/><circle cx="560" cy="40" r="7"/></g>
+        <text x="560" y="22" text-anchor="middle" fill="#0969da">tag v1.3</text>
+        <g fill="#d4a017"><circle cx="60" cy="110" r="6"/><circle cx="110" cy="110" r="6"/><circle cx="230" cy="110" r="6"/><circle cx="270" cy="110" r="6"/><circle cx="390" cy="110" r="6"/><circle cx="440" cy="110" r="6"/><circle cx="620" cy="110" r="6"/></g>
+        <g fill="#f05133"><circle cx="155" cy="143" r="5"/><circle cx="185" cy="143" r="5"/><circle cx="315" cy="143" r="5"/><circle cx="345" cy="143" r="5"/></g>
+      </g>
+    </svg>
+    <figcaption>gitflow — five branch types, one ceremony per release (dashed: release fixes merge back to develop)</figcaption>
+  </figure>
+  <p><strong>Best for:</strong> versioned products, scheduled releases, regulated industries.</p>
+  <p><strong>Watch out for:</strong> the overhead is real — long-lived branches invite merge hell.</p>
+
+  <h3><span class="hash">##</span> 🚄 Trunk-Based Development — high velocity</h3>
+  <p>Everyone integrates to trunk daily. Branches live <em>hours</em>, not days. Feature flags hide work-in-progress.</p>
+  <figure>
+    <svg viewBox="0 0 720 110" role="img" aria-label="Trunk-based development: one trunk with many small commits and tiny hours-long branches">
+      <g font-family="IBM Plex Mono, monospace" font-size="11">
+        <line x1="20" y1="55" x2="700" y2="55" stroke="#0969da" stroke-width="2.5"/>
+        <text x="20" y="40" fill="#0969da" font-weight="700">trunk</text>
+        <g stroke="#f05133" stroke-width="2" fill="none">
+          <path d="M130 55 C142 80, 158 80, 170 55"/>
+          <path d="M300 55 C312 80, 328 80, 340 55"/>
+          <path d="M470 55 C482 80, 498 80, 510 55"/>
+        </g>
+        <g fill="#0969da">
+          <circle cx="60" cy="55" r="5"/><circle cx="95" cy="55" r="5"/><circle cx="130" cy="55" r="5"/><circle cx="170" cy="55" r="5"/>
+          <circle cx="210" cy="55" r="5"/><circle cx="250" cy="55" r="5"/><circle cx="300" cy="55" r="5"/><circle cx="340" cy="55" r="5"/>
+          <circle cx="380" cy="55" r="5"/><circle cx="425" cy="55" r="5"/><circle cx="470" cy="55" r="5"/><circle cx="510" cy="55" r="5"/>
+          <circle cx="555" cy="55" r="5"/><circle cx="600" cy="55" r="5"/><circle cx="650" cy="55" r="5"/>
+        </g>
+        <text x="123" y="100" fill="#f05133">hours, not days</text>
+        <text x="380" y="40" fill="#2ea043">🚩 feature flags hide unfinished work</text>
+      </g>
+    </svg>
+    <figcaption>trunk-based — everyone on one line, all day, every day</figcaption>
+  </figure>
+  <p><strong>Best for:</strong> high-trust teams with great CI/CD — the fastest possible integration cycle.</p>
+  <p><strong>Watch out for:</strong> needs excellent test coverage and CI. Risky without both.</p>
+
+  <p>Most teams run a modified version of one of these. Reading list in the <a href="#resources">resources</a>.</p>
+
+  <h3><span class="hash">##</span> wait — what's a tag? (the diagram owes you this)</h3>
+  <p>That <code>tag v1.3</code> in the GitFlow diagram: a tag is a <strong>permanent, human-readable bookmark on one commit</strong>. Branches move with every commit; tags never do — which is exactly what you want for marking releases:</p>
+  <pre><code>git tag -a v1.3 -m "Release 1.3: fuel surcharge support"
+git push --tags                <span class="c"># tags don't push by default — everyone forgets this once</span>
+git checkout v1.3              <span class="c"># time-travel to exactly what shipped (detached HEAD — look, don't build)</span></code></pre>
+  <p>GitHub/GitLab "Releases" are tags with release notes and artifacts attached. If your CI deploys on tags, the tag <em>is</em> the release button — treat it with the same respect.</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="pr" class="reveal">
+  <div class="commit-line"><span class="sha">5c18d6e</span><span class="tag">collaboration</span></div>
+  <h2>the PR review</h2>
+  <p><strong>A pull request is a conversation with your team</strong>, not a paperwork ritual. Open it in <strong>draft mode early</strong> — even the moment you start. By the time you mark it ready, it should explain:</p>
+  <ul>
+    <li><strong>The Why</strong> — what problem are we solving (a ticket reference counts)</li>
+    <li><strong>The How</strong> — a high-level summary of the approach</li>
+    <li><strong>The Risk</strong> — what could this potentially break</li>
+    <li><strong>The Evidence</strong> — screenshots for UI, log snippets, or "I ran X and got Y"</li>
+  </ul>
+
+  <h3><span class="hash">##</span> commit messages humans can read</h3>
+  <p>Your reviewer reads the commit list before the diff. Anatomy of a message that helps instead of haunts:</p>
+  <pre><code><span class="g">Add fuel surcharge to voyage cost calculation</span>      <span class="c">← imperative mood, ≤50 chars,
+                                                       no trailing period</span>
+
+<span class="c">← blank line (mandatory — separates subject from body)</span>
+Charterers are billed surcharge per region since the
+May contract update. Without this, invoices for ECA
+zones under-report by ~4%.
+
+Refs: DS-1042                                       <span class="c">← body wraps at 72, explains
+                                                       WHY, not what (the diff
+                                                       already shows what)</span></code></pre>
+  <p>The litmus test for the subject line: it should complete the sentence <em>"If applied, this commit will…"</em>. "If applied, this commit will <strong>add fuel surcharge to voyage cost calculation</strong>" ✓. "If applied, this commit will <strong>fixed stuff</strong>" ✗ — and now you understand the Nervous Committer poster.</p>
+
+  <h3><span class="hash">##</span> the merge button: three flavors, one decision</h3>
+  <p>The merge-vs-rebase debate you actually face daily is a dropdown on the PR page. All three buttons land your code; they write different history:</p>
+  <div class="tscroll">
+  <table>
+    <thead><tr><th>Button</th><th>What main's history gets</th><th>Use when</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Merge commit</strong></td><td>All your branch commits + a merge commit joining them</td><td>The individual commits are clean and worth keeping (you squashed locally like a pro)</td></tr>
+      <tr><td><strong>Squash &amp; merge</strong></td><td>ONE commit, no matter how messy the branch was</td><td>The team default in most places — it forgives the Nervous Committer and keeps main readable: one PR = one commit</td></tr>
+      <tr><td><strong>Rebase &amp; merge</strong></td><td>Your commits replayed onto main, no merge commit</td><td>You want every commit preserved AND a linear history — demands discipline from everyone</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="note">
+    <span class="lbl">Day-one question, part 2</span>
+    <p>Right after "what git strategy do you use?", ask <strong>"and which merge button?"</strong> Teams that squash-merge care less about your branch hygiene; teams that merge-commit will read every commit you push. Calibrate accordingly.</p>
+  </div>
+
+  <h3><span class="hash">##</span> self-review checklist (before you ping anyone)</h3>
+  <ul>
+    <li>Does the code pass local tests?</li>
+    <li>Did I remove all the <code>print()</code> debugging and stray <code>TODO</code> comments?</li>
+    <li>Are commit messages clear, descriptive, and squashed where needed?</li>
+    <li>Did I rebase against develop/main so there are no conflicts?</li>
+    <li><strong>Would I be happy to maintain this if I saw it for the first time?</strong></li>
+  </ul>
+  <p>Recommended deep dive: <a href="https://google.github.io/eng-practices/review/reviewer/" target="_blank" rel="noopener">Google's Engineering Practices — The Code Reviewer's Guide</a>.</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="quiz" class="reveal">
+  <div class="commit-line"><span class="sha">6d29e7f</span><span class="tag">boss-fight</span></div>
+  <h2>boss fight 🐉</h2>
+  <p>Five questions stand between you and the rank of <strong>Reflog Necromancer</strong>. No reflog can save you from a wrong answer — but the explanations can.</p>
+
+  <div class="quiz" id="quiz-body">
+    <div class="q" data-answer="b">
+      <p class="qt"><span class="qnum">1/5</span>When is it OK to <code>git push --force</code>?</p>
+      <label class="opt"><input type="radio" name="q1" value="a"> Never. Force is a myth.</label>
+      <label class="opt"><input type="radio" name="q1" value="b"> On my own branch that nobody else builds on — and even then, prefer <code>--force-with-lease</code></label>
+      <label class="opt"><input type="radio" name="q1" value="c"> On main, if I'm quick about it</label>
+      <label class="opt"><input type="radio" name="q1" value="d"> Only on Fridays at 17:55</label>
+      <p class="why">Your own un-shared branch is yours to rewrite. <code>--force-with-lease</code> refuses to clobber commits you haven't seen. If others may have pulled it: Golden Rule — talk to the team first.</p>
+    </div>
+    <div class="q" data-answer="b">
+      <p class="qt"><span class="qnum">2/5</span>You've been committing to <code>main</code> for two hours. First move?</p>
+      <label class="opt"><input type="radio" name="q2" value="a"> Panic. Loudly.</label>
+      <label class="opt"><input type="radio" name="q2" value="b"> <code>git reset --soft origin/main</code>, then branch and commit properly</label>
+      <label class="opt"><input type="radio" name="q2" value="c"> Force push and pretend it was intentional</label>
+      <label class="opt"><input type="radio" name="q2" value="d"> Delete the repo and re-clone (the classic)</label>
+      <p class="why">Your work is local and committed = safe. Soft reset returns the changes to staged, then <code>git checkout -b feature/proper-branch</code> and commit there. No deleting, no panicking, no lying.</p>
+    </div>
+    <div class="q" data-answer="c">
+      <p class="qt"><span class="qnum">3/5</span>Why do we gitignore <code>.venv</code> folders?</p>
+      <label class="opt"><input type="radio" name="q3" value="a"> They contain secrets</label>
+      <label class="opt"><input type="radio" name="q3" value="b"> Git physically cannot handle folders that deep</label>
+      <label class="opt"><input type="radio" name="q3" value="c"> Huge, machine-specific, and fully reproducible from requirements/lockfiles</label>
+      <label class="opt"><input type="radio" name="q3" value="d"> Ancient Python superstition</label>
+      <p class="why">Platform-dependent binaries + gigabytes of installable packages = repo bloat and guaranteed "works on my machine" breakage. The lockfile is the source of truth; the venv is disposable.</p>
+    </div>
+    <div class="q" data-answer="a">
+      <p class="qt"><span class="qnum">4/5</span>Updating your local feature branch with new main commits — which tool?</p>
+      <label class="opt"><input type="radio" name="q4" value="a"> Rebase — clean history, fewer conflicts</label>
+      <label class="opt"><input type="radio" name="q4" value="b"> Merge — more merge commits means more history, which means more better</label>
+      <label class="opt"><input type="radio" name="q4" value="c"> Cherry-pick every main commit individually, for the thrill</label>
+      <label class="opt"><input type="radio" name="q4" value="d"> Copy-paste the files into a new folder called final_v2</label>
+      <p class="why">Rebase for updating your local feature branch; merge for landing the finished feature into main/develop. And option d is how the workshop series got its name.</p>
+    </div>
+    <div class="q" data-answer="b">
+      <p class="qt"><span class="qnum">5/5</span><code>git fetch</code> vs <code>git pull</code> — fetch is…?</p>
+      <label class="opt"><input type="radio" name="q5" value="a"> The same thing, fetch is just British</label>
+      <label class="opt"><input type="radio" name="q5" value="b"> Download-only: updates remote-tracking refs, touches nothing in my working directory</label>
+      <label class="opt"><input type="radio" name="q5" value="c"> It deletes remote branches</label>
+      <label class="opt"><input type="radio" name="q5" value="d"> A faster pull</label>
+      <p class="why">Fetch is read-only reconnaissance. Pull = fetch + immediately merge/rebase into your current branch. When in doubt, fetch first and look around.</p>
+    </div>
+
+    <div class="quiz-actions">
+      <button class="grade-btn" type="button" id="grade">⚔️ Submit answers</button>
+      <span id="rank"></span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section id="resources" class="reveal">
+  <div class="commit-line"><span class="sha">7e3af80</span><span class="tag">self-study</span></div>
+  <h2>resources (where the actual learning happens)</h2>
+  <ul>
+    <li><a href="https://git-scm.com/book/en/v2" target="_blank" rel="noopener">Pro Git</a> — the book. Chapters 1–3 at minimum. Free, official, excellent.</li>
+    <li><a href="https://cbea.ms/git-commit/" target="_blank" rel="noopener">How to Write a Git Commit Message</a> — the seven rules everyone quotes.</li>
+    <li><a href="https://git-scm.com/book/en/v2/Git-Branching-Basic-Branching-and-Merging" target="_blank" rel="noopener">Basic Branching &amp; Merging</a> — from Pro Git.</li>
+    <li><a href="https://github.com/k88hudson/git-flight-rules" target="_blank" rel="noopener">Flight Rules for Git</a> — "what to do when X goes wrong," NASA-style.</li>
+      <li><a href="https://ohshitgit.com/" target="_blank" rel="noopener">Oh Shit, Git!?!</a> — disaster recovery in the exact voice you'll be in when you need it.</li>
+      <li><a href="https://www.conventionalcommits.org/en/v1.0.0/" target="_blank" rel="noopener">Conventional Commits</a> — the commit-message convention worth standardizing on (<code>feat:</code>, <code>fix:</code>, <code>chore:</code>).</li>
+      <li><a href="https://google.github.io/eng-practices/review/" target="_blank" rel="noopener">Google's Code Review Guidelines</a> — both sides of the PR; the "small CLs" section is the law.</li>
+    <li><a href="https://git-school.github.io/visualizing-git/" target="_blank" rel="noopener">Visualizing Git</a> — watch the graph move as you type commands.</li>
+    <li><a href="https://learngitbranching.js.org/" target="_blank" rel="noopener">Learn Git Branching</a> — interactive puzzle game. Genuinely fun.</li>
+    <li><a href="https://ohmygit.org/" target="_blank" rel="noopener">Oh My Git!</a> — an open-source game about learning Git.</li>
+    <li><a href="https://github.com/nivbend/gitstery" target="_blank" rel="noopener">Gitstery</a> — a murder has been committed in Git Town. Solve it with git commands.</li>
+      <li><a href="https://github.com/Gazler/githug" target="_blank" rel="noopener">Githug</a> — 55 levels of git, played in your actual terminal. Muscle memory, gamified.</li>
+  </ul>
+  <h3><span class="hash">##</span> branching strategy reading</h3>
+  <ul>
+    <li><a href="https://www.atlassian.com/git/tutorials/comparing-workflows" target="_blank" rel="noopener">Atlassian — Comparing Git Workflows</a></li>
+    <li><a href="https://docs.github.com/en/get-started/using-github/github-flow" target="_blank" rel="noopener">GitHub Flow (official guide)</a></li>
+    <li><a href="https://trunkbaseddevelopment.com/" target="_blank" rel="noopener">Trunk-Based Development</a></li>
+    <li><a href="https://nvie.com/posts/a-successful-git-branching-model/" target="_blank" rel="noopener">A Successful Git Branching Model</a> — the post that started GitFlow. A piece of software history.</li>
+  </ul>
+</section>
+
+<footer>
+<p>same series: <a href="/collaboration-bootcamp/consultant-setup-survival-guide/">The Consultant&#x27;s Setup Survival Guide</a> (<code>./onboard.sh</code>) <span class="c"><!-- VERIFY/UPDATE this URL once the setup guide is deployed --></span></p>
+
+  <p>$ git log --oneline | tail -1<br>
+  <span class="zero" id="zero" title="...">0000000</span> initial commit — go play and break things 🚀</p>
+</footer>
+
+</main>
+</div>
+
+<script>
+// ---------- copy buttons ----------
+document.querySelectorAll('pre').forEach(pre=>{
+  const btn=document.createElement('button');
+  btn.className='copy';btn.type='button';btn.textContent='copy';
+  btn.addEventListener('click',async()=>{
+    try{await navigator.clipboard.writeText(pre.querySelector('code').innerText);
+      btn.textContent='copied!';setTimeout(()=>btn.textContent='copy',1500);
+    }catch(e){btn.textContent='ctrl+c?';}
+  });
+  pre.appendChild(btn);
+});
+
+// ---------- hero terminal typing ----------
+const lines=[
+  {t:'git commit -m "final"',r:'<span class="ok">[main 4a1f3e0] final</span>'},
+  {t:'git commit -m "final_v2"',r:'<span class="ok">[main 8b2c915] final_v2</span>'},
+  {t:'git commit -m "final_v2_ACTUAL_FINAL"',r:'<span class="err">we need to talk.</span>'},
+  {t:'git checkout -b survival-guide',r:'<span class="ok">Switched to a new branch \'survival-guide\' ✨</span>'}
+];
+const typer=document.getElementById('typer');
+const termBody=document.getElementById('term-body');
+const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(reduced){
+  termBody.innerHTML='<span class="dollar">$</span> git checkout -b survival-guide<br><span class="ok">Switched to a new branch \'survival-guide\' ✨</span>';
+}else{
+  let li=0;
+  function typeLine(){
+    const line=lines[li];let ci=0;
+    const iv=setInterval(()=>{
+      typer.textContent=line.t.slice(0,++ci);
+      if(ci>=line.t.length){
+        clearInterval(iv);
+        setTimeout(()=>{
+          const echo=document.createElement('div');
+          echo.className='echo';
+          echo.innerHTML='<span class="dollar">$</span> '+line.t.replace(/</g,'&lt;')+'<br>'+line.r;
+          termBody.insertBefore(echo,document.getElementById('live'));
+          const echoes=termBody.querySelectorAll('.echo');
+          if(echoes.length>2)echoes[0].remove();
+          typer.textContent='';
+          li=(li+1)%lines.length;
+          setTimeout(typeLine,900);
+        },650);
+      }
+    },45);
+  }
+  setTimeout(typeLine,700);
+}
+
+// ---------- scroll reveals ----------
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:.08});
+document.querySelectorAll('.reveal').forEach(s=>io.observe(s));
+
+// ---------- panic button ----------
+document.getElementById('panic').addEventListener('click',()=>{
+  document.body.classList.remove('panic-flash');
+  void document.body.offsetWidth;
+  document.body.classList.add('panic-flash');
+  document.getElementById('sos').scrollIntoView({behavior:reduced?'auto':'smooth'});
+});
+
+// ---------- yolo generator ----------
+const yolos=[
+  "fixed the thing","I have no idea what I'm doing","it works on my machine, ship it",
+  "removed code that was breaking stuff (idk which)","temporary fix, do not touch (3 years ago)",
+  "asdfghjkl","final final FINAL fix","pls work","refactored the refactoring",
+  "added some quality to the code","this will definitely not break prod","🙏",
+  "undo previous undo of the undo","copied from stackoverflow, seems legit",
+  "if you're reading this, I'm sorry","made it worse, but consistently worse"
+];
+const yoloBtn=document.getElementById('yolo-btn');
+const yoloOut=document.getElementById('yolo-out');
+yoloBtn.addEventListener('click',()=>{
+  const msg=yolos[Math.floor(Math.random()*yolos.length)];
+  const sha=Math.random().toString(16).slice(2,9);
+  yoloOut.textContent='[main '+sha+'] '+msg;
+});
+
+// ---------- quiz ----------
+const ranks=[
+  [0,'🪦 Detached HEAD — your commits are floating in the void. Re-read and retry!'],
+  [2,'🌱 Branch Apprentice — solid roots, keep growing.'],
+  [4,'🧙 Merge Wizard — conflicts fear you.'],
+  [5,'🔮 Reflog Necromancer — you bring deleted branches back from the dead.']
+];
+document.getElementById('grade').addEventListener('click',()=>{
+  let score=0;const qs=document.querySelectorAll('#quiz .q');
+  qs.forEach(q=>{
+    q.classList.add('graded');
+    const ans=q.dataset.answer;
+    const picked=q.querySelector('input:checked');
+    q.querySelectorAll('.opt').forEach(o=>{
+      const v=o.querySelector('input').value;
+      if(v===ans)o.classList.add('right');
+      else if(picked&&picked.value===v)o.classList.add('wrong-pick');
+    });
+    if(picked&&picked.value===ans)score++;
+  });
+  let rank=ranks[0][1];
+  ranks.forEach(([min,label])=>{if(score>=min)rank=label;});
+  const r=document.getElementById('rank');
+  r.textContent='Score '+score+'/5 — '+rank;
+  r.classList.add('show');
+  if(score===5&&!reduced)confetti();
+});
+
+// ---------- confetti ----------
+function confetti(){
+  const colors=['#f05133','#2ea043','#0969da','#d4a017','#cf222e'];
+  for(let i=0;i<90;i++){
+    const c=document.createElement('div');
+    c.className='confetti';
+    c.style.left=Math.random()*100+'vw';
+    c.style.background=colors[i%colors.length];
+    c.style.animationDuration=(2.2+Math.random()*2)+'s';
+    c.style.animationDelay=Math.random()*0.6+'s';
+    c.style.transform='rotate('+Math.random()*360+'deg)';
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(),5200);
+  }
+}
+
+// ---------- footer easter egg ----------
+document.getElementById('zero').addEventListener('click',()=>{
+  if(!reduced)confetti();
+  document.getElementById('zero').nextSibling.textContent=' initial commit — you found the empty tree. 4b825dc salutes you 🫡';
+});
+</script>
+</body>
+</html>

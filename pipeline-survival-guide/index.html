@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Pipeline Survival Guide — Python quality, testing & CI/CD</title>
+<meta name="description" content="A 2am reference for Python testing, typing, logging and CI/CD. For when the pipeline is red and the release is today.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1b1f23; --ink-soft:#4b5258;
+  --paper:#ffffff; --paper-dim:#f6f7f8; --rail:#d4d8dc;
+  --accent:#1f6feb;            /* pipeline indigo */
+  --accent-dim:#e8f0fe;
+  --green:#2ea043; --green-dim:#e9f7ec;
+  --red:#cf222e;   --red-dim:#fdecee;
+  --blue:#0969da;  --yellow:#d4a017;
+  --code-bg:#16181d; --code-ink:#e8eaed;
+  --code-comment:#7d8590; --code-accent:#ffa657;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --serif:'Source Serif 4',Georgia,serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{font-family:var(--serif);color:var(--ink);background:var(--paper);line-height:1.65;font-size:17px}
+h1,h2,h3,h4,.chip,nav,figcaption,th,.poster,.btn,.hero-term,.tag{font-family:var(--mono)}
+a{color:var(--accent)}
+a:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+/* ---------- layout ---------- */
+.wrap{display:grid;grid-template-columns:300px 1fr;gap:0;max-width:1200px;margin:0 auto}
+nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;
+  border-right:1px solid var(--rail);padding:1.2rem 1rem 2rem;background:var(--paper-dim);font-size:.78rem}
+main{padding:0 2.2rem 4rem;min-width:0}
+main > section{max-width:70ch}
+main pre,main table,main figure,.posters,.versus,.q{max-width:48rem}
+@media (max-width:920px){
+  .wrap{display:block}
+  nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--rail)}
+  main{padding:0 1rem 4rem}
+}
+
+/* ---------- TOC as pipeline stage list ---------- */
+nav.toc .pipehead{color:var(--ink-soft);margin-bottom:.6rem;line-height:1.5}
+nav.toc .pipehead b{color:var(--ink);font-weight:600}
+nav.toc ol{list-style:none}
+nav.toc li{margin:0}
+nav.toc a{display:flex;gap:.5rem;align-items:baseline;color:var(--ink);text-decoration:none;
+  padding:.28rem .4rem;border-radius:5px;border-left:3px solid transparent}
+nav.toc a:hover{background:var(--accent-dim);border-left-color:var(--accent)}
+nav.toc .st{width:1.1em;flex:none}
+nav.toc .ok{color:var(--green)} nav.toc .bad{color:var(--red)} nav.toc .wait{color:var(--yellow)}
+nav.toc .nm{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+nav.toc .dur{color:var(--ink-soft);flex:none}
+
+/* ---------- hero ---------- */
+header.hero{padding:2.5rem 0 1rem}
+.hero-term{background:var(--code-bg);color:var(--code-ink);border-radius:10px;
+  box-shadow:0 12px 30px rgba(27,31,35,.25);max-width:48rem;overflow:hidden;font-size:.85rem}
+.hero-bar{background:#23262d;padding:.5rem .8rem;display:flex;gap:.45rem;align-items:center;color:#9aa1a9}
+.hero-bar i{width:.75rem;height:.75rem;border-radius:50%;display:inline-block}
+.hero-bar .r{background:#ff5f56}.hero-bar .y{background:#ffbd2e}.hero-bar .g{background:#27c93f}
+.hero-bar span{margin-left:.5rem;font-size:.75rem}
+.hero-body{position:relative;padding:1rem 1.1rem 1.2rem}
+.hero-sizer{visibility:hidden;white-space:pre-wrap}
+.hero-anim{position:absolute;top:1rem;left:1.1rem;right:1.1rem;bottom:1.2rem;white-space:pre-wrap}
+.hero-body .ok{color:#3fb950}.hero-body .bad{color:#f85149}.hero-body .dim{color:var(--code-comment)}
+.hero-body .cur{display:inline-block;width:.55em;height:1.05em;background:var(--code-ink);
+  vertical-align:text-bottom;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+h1{font-size:1.55rem;margin:1.4rem 0 .4rem;letter-spacing:-.02em}
+.subtitle{color:var(--ink-soft);font-style:italic;margin-bottom:.5rem}
+
+/* ---------- sections ---------- */
+section{padding:2.2rem 0 1rem;border-top:1px dashed var(--rail)}
+.chip{display:inline-block;font-size:.72rem;color:var(--ink-soft);background:var(--paper-dim);
+  border:1px solid var(--rail);border-radius:99px;padding:.15rem .7rem;margin-bottom:.55rem}
+.chip .ok{color:var(--green)}.chip .bad{color:var(--red)}.chip .wait{color:var(--yellow)}
+h2{font-size:1.25rem;margin-bottom:.9rem;letter-spacing:-.01em}
+h3{font-size:1rem;margin:1.6rem 0 .6rem}
+h4{font-size:.9rem;margin:1.2rem 0 .4rem}
+p{margin:0 0 .9rem}
+ul,ol{margin:0 0 .9rem 1.3rem}
+li{margin-bottom:.3rem}
+strong{font-weight:600}
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .5s,transform .5s}
+.reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
+
+/* ---------- code ---------- */
+pre{background:var(--code-bg);color:var(--code-ink);padding:1rem 1.1rem;border-radius:8px;
+  overflow-x:auto;font-size:.82rem;line-height:1.55;margin:0 0 1rem;position:relative;font-family:var(--mono)}
+pre .c{color:var(--code-comment)} pre .a{color:var(--code-accent)} pre .g{color:#3fb950} pre .r{color:#f85149}
+code{font-family:var(--mono);font-size:.85em;background:var(--paper-dim);
+  border:1px solid var(--rail);border-radius:4px;padding:.06em .35em}
+pre code{background:none;border:none;padding:0;font-size:inherit}
+.copy{position:absolute;top:.5rem;right:.5rem;background:#2b2f36;color:#c8ccd1;border:1px solid #3a3f46;
+  border-radius:5px;font-family:var(--mono);font-size:.68rem;padding:.22rem .55rem;cursor:pointer}
+.copy:hover{background:#383d45;color:#fff}
+
+/* ---------- callouts ---------- */
+.note,.fix,.alarm{border-radius:8px;padding:.85rem 1rem .85rem 1rem;margin:0 0 1rem;font-size:.95rem}
+.note{background:var(--accent-dim);border-left:4px solid var(--accent)}
+.fix{background:var(--green-dim);border-left:4px solid var(--green)}
+.alarm{background:var(--red-dim);border-left:4px solid var(--red)}
+.note b:first-child,.fix b:first-child,.alarm b:first-child{font-family:var(--mono);font-size:.78rem;
+  display:block;margin-bottom:.25rem;letter-spacing:.04em}
+
+/* ---------- tables ---------- */
+.tblwrap{overflow-x:auto;margin:0 0 1rem}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th{background:var(--paper-dim);text-align:left;font-size:.74rem;letter-spacing:.03em}
+th,td{border:1px solid var(--rail);padding:.5rem .65rem;vertical-align:top}
+td code{white-space:nowrap}
+td.y{background:var(--green-dim)} td.n{background:var(--red-dim)}
+
+/* ---------- figures ---------- */
+figure{margin:0 0 1.2rem}
+figure svg{width:100%;height:auto;display:block;background:var(--paper-dim);
+  border:1px solid var(--rail);border-radius:8px}
+figcaption{font-size:.74rem;color:var(--ink-soft);margin-top:.4rem}
+
+/* ---------- versus ---------- */
+.versus{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:0 0 1rem}
+.versus .card{border:1px solid var(--rail);border-radius:8px;padding:1rem;background:var(--paper-dim)}
+.versus .card h4{margin-top:0}
+@media (max-width:700px){.versus{grid-template-columns:1fr}}
+
+/* ---------- posters ---------- */
+.posters{display:grid;grid-template-columns:repeat(2,1fr);gap:1.1rem;margin:0 0 1rem}
+@media (max-width:700px){.posters{grid-template-columns:1fr}}
+.poster{border:2px solid var(--ink);border-radius:6px;background:#fdfbf5;padding:1rem;
+  box-shadow:4px 5px 0 rgba(27,31,35,.18);transition:transform .18s;font-size:.85rem}
+.poster:hover{transform:rotate(-1.1deg) translateY(-3px)}
+@media (prefers-reduced-motion:reduce){.poster,.poster:hover{transition:none;transform:none}}
+.poster .mug{font-size:2.3rem;text-align:center;display:block;margin-bottom:.3rem}
+.poster h4{text-align:center;margin:.1rem 0 .55rem;font-size:.92rem}
+.poster .crime{margin-bottom:.6rem}
+.poster .bounty{background:var(--green-dim);border:1px dashed var(--green);border-radius:6px;
+  padding:.5rem .6rem;font-size:.8rem}
+.poster .bounty b{color:var(--green);font-family:var(--mono);font-size:.72rem;letter-spacing:.05em}
+
+/* ---------- quiz ---------- */
+.q{border:1px solid var(--rail);border-radius:8px;padding:1rem 1.1rem;margin-bottom:1rem;background:var(--paper-dim)}
+.q p.qq{font-weight:600;margin-bottom:.6rem}
+.q label{display:block;padding:.4rem .6rem;border-radius:6px;cursor:pointer;margin-bottom:.25rem;font-size:.95rem}
+.q label:hover{background:var(--accent-dim)}
+.q label.good{background:var(--green-dim);outline:2px solid var(--green)}
+.q label.bad{background:var(--red-dim);outline:2px solid var(--red)}
+.btn{display:inline-block;background:var(--accent);color:#fff;border:none;border-radius:7px;
+  padding:.6rem 1.2rem;font-size:.85rem;cursor:pointer;font-weight:600}
+.btn:hover{filter:brightness(1.1)}
+#verdict{margin-top:1rem;font-family:var(--mono);font-size:1rem}
+
+/* ---------- panic ---------- */
+#panic{position:fixed;right:1.2rem;bottom:1.2rem;z-index:50;background:var(--red);color:#fff;
+  border:none;border-radius:99px;padding:.8rem 1.25rem;font-family:var(--mono);font-weight:600;
+  font-size:.85rem;cursor:pointer;box-shadow:0 8px 22px rgba(207,34,46,.45);animation:pulse 1.8s infinite}
+#panic:hover{animation:shake .35s infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+@keyframes shake{0%,100%{transform:rotate(0)}25%{transform:rotate(-2.5deg)}75%{transform:rotate(2.5deg)}}
+@media (prefers-reduced-motion:reduce){#panic{animation:none}#panic:hover{animation:none}}
+body.flash{animation:redflash .55s}
+@keyframes redflash{0%{background:var(--red-dim)}100%{background:var(--paper)}}
+@media (prefers-reduced-motion:reduce){body.flash{animation:none}}
+
+/* ---------- generator ---------- */
+.genbox{border:1px dashed var(--accent);border-radius:8px;background:var(--accent-dim);
+  padding:1rem 1.1rem;margin:0 0 1rem}
+#genout{font-family:var(--mono);font-size:.88rem;margin-top:.6rem;min-height:1.5em}
+
+/* ---------- footer ---------- */
+footer{border-top:1px solid var(--rail);margin-top:2rem;padding:1.6rem 0 2.6rem;
+  font-family:var(--mono);font-size:.78rem;color:var(--ink-soft)}
+footer a{color:var(--accent)}
+#egg{cursor:pointer;color:var(--green);font-weight:600}
+.confetti{position:fixed;top:-12px;z-index:99;pointer-events:none;border-radius:2px}
+.tag{display:inline-block;font-size:.68rem;border:1px solid var(--rail);border-radius:4px;
+  padding:.05rem .4rem;color:var(--ink-soft);background:var(--paper-dim)}
+</style>
+</head>
+<body>
+<button id="panic" aria-label="Pipeline red — jump to disaster recovery">🔴 PIPELINE RED</button>
+<div class="wrap">
+
+<nav class="toc" aria-label="Pipeline stages (table of contents)">
+  <p class="pipehead"><b>pipeline #4127</b><br>nimbus-freight / pricing<br>branch: feature/quote-totals<br>&nbsp;</p>
+  <ol>
+    <li><a href="#s00"><span class="st ok">✓</span><span class="nm">00 why_this_exists</span><span class="dur">0.4s</span></a></li>
+    <li><a href="#s01"><span class="st ok">✓</span><span class="nm">01 the_loop</span><span class="dur">1.1s</span></a></li>
+    <li><a href="#s02"><span class="st ok">✓</span><span class="nm">02 what_ci_actually_is</span><span class="dur">2.0s</span></a></li>
+    <li><a href="#s03"><span class="st ok">✓</span><span class="nm">03 mental_model</span><span class="dur">3.7s</span></a></li>
+    <li><a href="#s04"><span class="st ok">✓</span><span class="nm">04 core_reference</span><span class="dur">3.2s</span></a></li>
+    <li><a href="#s05"><span class="st ok">✓</span><span class="nm">05 ide_setup</span><span class="dur">1.8s</span></a></li>
+    <li><a href="#s06"><span class="st ok">✓</span><span class="nm">06 configs_that_pay_rent</span><span class="dur">2.4s</span></a></li>
+    <li><a href="#s07"><span class="st ok">✓</span><span class="nm">07 testing_the_hard_stuff</span><span class="dur">4.1s</span></a></li>
+    <li><a href="#s08"><span class="st bad">✗</span><span class="nm">08 the_most_wanted</span><span class="dur">2m04s</span></a></li>
+    <li><a href="#s09"><span class="st ok">✓</span><span class="nm">09 the_eternal_debate</span><span class="dur">0.9s</span></a></li>
+    <li><a href="#s10"><span class="st bad">✗</span><span class="nm">10 sos_pipeline_red</span><span class="dur">∞</span></a></li>
+    <li><a href="#s11"><span class="st wait">⏳</span><span class="nm">11 boss_fight</span><span class="dur">—</span></a></li>
+    <li><a href="#s12"><span class="st wait">⏳</span><span class="nm">12 resources</span><span class="dur">—</span></a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="hero">
+  <div class="hero-term" role="img" aria-label="Animated terminal: a git push triggers pipeline stages; lint and typecheck pass, the test stage fails on a trailing space, and the pipeline opens this guide.">
+    <div class="hero-bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>nimbus-freight/pricing — pipeline #4127</span></div>
+    <div class="hero-body"><div class="hero-sizer" id="heroSizer" aria-hidden="true"></div><div class="hero-anim" id="heroBody" aria-hidden="true"></div></div>
+  </div>
+  <h1>The Pipeline Survival Guide</h1>
+  <p class="subtitle">Python quality, testing &amp; CI/CD — for when the pipeline is red and the release is today.</p>
+</header>
+
+<section id="s00" class="reveal">
+  <span class="chip">stage 00/13 · why_this_exists · <span class="ok">passed</span> in 0.4s</span>
+  <h2>00 · why this page exists</h2>
+  <p>This page will not teach you testing or CI/CD by itself. It is two other things: a <strong>mid-panic reference</strong> for the day the pipeline is red and the release is today, and a <strong>map of the mistakes</strong> everyone makes on the way to a boring, reliable release process. Boring is the goal. Boring is praise.</p>
+  <p>Quality gates exist because every developer is an optimist at 17:55 on a Friday. The pipeline is the pessimist you hired to stand at the door. This guide covers what that pessimist checks: tests (unit through end-to-end), typing, logging, error handling, and the anatomy of the pipeline itself.</p>
+  <p>One deliberate choice: this guide is <strong>vendor-neutral</strong>. Azure DevOps, GitHub Actions and GitLab CI are the same five ideas wearing different YAML. You get the ideas, plus a <a href="#rosetta">rosetta table</a> to translate between platforms — not one vendor's syntax reference that rots in a year.</p>
+</section>
+
+<section id="s01" class="reveal">
+  <span class="chip">stage 01/13 · the_loop · <span class="ok">passed</span> in 1.1s</span>
+  <h2>01 · day zero: the two loops</h2>
+  <p>Everything in this guide serves two nested loops. The <strong>inner loop</strong> runs in seconds, on your machine: write a failing test, make it pass, refactor. The <strong>outer loop</strong> runs in minutes, on shared infrastructure: push, watch the stages, review, merge, promote. The inner loop is where you go fast; the outer loop is where the team stays safe.</p>
+  <figure>
+    <svg viewBox="0 0 740 290" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Figure 0: the inner red-green-refactor loop in seconds, nested inside the outer push-pipeline-review-merge-promote loop in minutes.">
+      <style>text{font-family:'IBM Plex Mono',monospace}</style>
+      <!-- outer loop frame -->
+      <rect x="14" y="14" width="712" height="262" rx="12" fill="none" stroke="#1f6feb" stroke-width="2"/>
+      <text x="30" y="40" font-size="13" fill="#1f6feb" font-weight="600">OUTER LOOP — minutes, shared</text>
+      <!-- outer chain -->
+      <g font-size="12" text-anchor="middle">
+        <rect x="30"  y="210" width="86" height="34" rx="17" fill="#e8f0fe" stroke="#1f6feb"/><text x="73"  y="231" fill="#1b1f23">push</text>
+        <rect x="136" y="210" width="120" height="34" rx="17" fill="#e8f0fe" stroke="#1f6feb"/><text x="196" y="231" fill="#1b1f23">stages run</text>
+        <rect x="276" y="210" width="96" height="34" rx="17" fill="#e8f0fe" stroke="#1f6feb"/><text x="324" y="231" fill="#1b1f23">review</text>
+        <rect x="392" y="210" width="90" height="34" rx="17" fill="#e8f0fe" stroke="#1f6feb"/><text x="437" y="231" fill="#1b1f23">merge</text>
+        <rect x="502" y="210" width="110" height="34" rx="17" fill="#e9f7ec" stroke="#2ea043"/><text x="557" y="231" fill="#1b1f23">promote</text>
+      </g>
+      <g stroke="#4b5258" stroke-width="1.6" fill="#4b5258">
+        <line x1="116" y1="227" x2="130" y2="227"/><path d="M130 223 l8 4 -8 4 z"/>
+        <line x1="256" y1="227" x2="270" y2="227"/><path d="M270 223 l8 4 -8 4 z"/>
+        <line x1="372" y1="227" x2="386" y2="227"/><path d="M386 223 l8 4 -8 4 z"/>
+        <line x1="482" y1="227" x2="496" y2="227"/><path d="M496 223 l8 4 -8 4 z"/>
+      </g>
+      <path d="M612 227 h60 q24 0 24 -24 v-110 q0 -24 -24 -24 h-580 q-24 0 -24 24 v96" fill="none" stroke="#4b5258" stroke-width="1.6" stroke-dasharray="6 5"/>
+      <path d="M64 185 l4 12 6 -11 z" fill="#4b5258"/>
+      <text x="372" y="62" font-size="11" fill="#4b5258" text-anchor="middle">repeat (next branch)</text>
+      <!-- inner loop -->
+      <rect x="206" y="80" width="330" height="106" rx="10" fill="#ffffff" stroke="#cf222e" stroke-width="2"/>
+      <text x="222" y="103" font-size="12" fill="#cf222e" font-weight="600">INNER LOOP — seconds, local</text>
+      <g font-size="12" text-anchor="middle">
+        <rect x="222" y="124" width="84" height="32" rx="16" fill="#fdecee" stroke="#cf222e"/><text x="264" y="144" fill="#1b1f23">red</text>
+        <rect x="330" y="124" width="84" height="32" rx="16" fill="#e9f7ec" stroke="#2ea043"/><text x="372" y="144" fill="#1b1f23">green</text>
+        <rect x="436" y="124" width="86" height="32" rx="16" fill="#e8f0fe" stroke="#0969da"/><text x="479" y="144" fill="#1b1f23">refactor</text>
+      </g>
+      <g stroke="#4b5258" stroke-width="1.6" fill="#4b5258">
+        <line x1="306" y1="140" x2="322" y2="140"/><path d="M322 136 l8 4 -8 4 z"/>
+        <line x1="414" y1="140" x2="428" y2="140"/><path d="M428 136 l8 4 -8 4 z"/>
+      </g>
+      <path d="M479 160 v12 h-215 v-12" fill="none" stroke="#4b5258" stroke-width="1.4" stroke-dasharray="5 4"/>
+      <path d="M260 172 l4 -10 4 10 z" fill="#4b5258"/>
+      <line x1="371" y1="186" x2="371" y2="206" stroke="#4b5258" stroke-width="1.6" stroke-dasharray="4 4"/>
+      <path d="M367 204 l4 8 4 -8 z" fill="#4b5258"/>
+      <text x="385" y="202" font-size="10.5" fill="#4b5258">push when green</text>
+    </svg>
+    <figcaption>fig 0 — the inner loop (red → green → refactor, seconds) lives inside the outer loop (push → stages → review → merge → promote, minutes). The inner loop links back to step 07 of the setup guide.</figcaption>
+  </figure>
+  <p>The same loop, as a session:</p>
+<pre><code><span class="c"># inner loop — runs in seconds, on your laptop</span>
+pytest tests/test_surcharge.py -x          <span class="c"># red: the new test fails</span>
+<span class="c"># ... write the minimum code that passes ...</span>
+pytest tests/test_surcharge.py -x          <span class="c"># green</span>
+pytest -q                                  <span class="c"># whole suite still green? refactor freely</span>
+
+<span class="c"># outer loop — runs in minutes, on the CI runner</span>
+git push origin feature/quote-totals       <span class="c"># triggers: lint → typecheck → test → build → deploy</span></code></pre>
+  <div class="note"><b>IF YOU ONLY REMEMBER THREE THINGS</b>
+  1. A failing test reproduces every bug <em>before</em> its fix — that is the receipt that the fix works.<br>
+  2. Artifacts are built <strong>once</strong> and promoted through environments — never rebuilt per environment.<br>
+  3. A flaky test is a failing test. A rerun button is not a fix.</div>
+</section>
+
+<section id="s02" class="reveal">
+  <span class="chip">stage 02/13 · what_ci_actually_is · <span class="ok">passed</span> in 2.0s</span>
+  <h2>02 · what CI actually is</h2>
+  <p>In the 1990s, large teams integrated their code every few months, in a ritual the industry honestly named <strong>integration hell</strong>: weeks of merging divergent branches and discovering that everyone's "done" code disagreed with everyone else's. The first countermeasure was the <strong>nightly build</strong> — if the build broke, you knew within a day instead of a quarter.</p>
+  <p>Extreme Programming in the late '90s pushed the idea to its limit: integrate <em>continuously</em> — multiple times a day, every merge verified by an automated build and test run. Through the 2000s this became tooling (CruiseControl, then Hudson/Jenkins, then everything), and "CI" stopped being a practice you do and became a server you have. Which is roughly when people started confusing the two — the server is just the pessimist; CI is the habit of integrating small and often, so it has something small to check.</p>
+  <p>Three terms get blended in client meetings. They are different promises:</p>
+  <div class="tblwrap"><table>
+    <tr><th>term</th><th>the promise</th><th>where the human sits</th></tr>
+    <tr><td><strong>Continuous Integration</strong></td><td>every merge to main is built and tested automatically</td><td>humans merge; the machine verifies</td></tr>
+    <tr><td><strong>Continuous Delivery</strong></td><td>every green build <em>could</em> ship; release is one approval away</td><td>a human clicks "deploy to prod"</td></tr>
+    <tr><td><strong>Continuous Deployment</strong></td><td>every green build <em>does</em> ship, automatically</td><td>no human in the release path</td></tr>
+  </table></div>
+  <p>Most teams that say "we do CD" mean delivery, not deployment. When a client says CD, ask which one — the answer changes the architecture of the last stage.</p>
+</section>
+
+<section id="s03" class="reveal">
+  <span class="chip">stage 03/13 · mental_model · <span class="ok">passed</span> in 3.7s</span>
+  <h2>03 · the mental model</h2>
+  <p><strong>Naive model:</strong> "tests slow me down." <strong>Real model:</strong> "tests are the only reason I'm still fast in week two." Untested code lets you sprint exactly once; after that, every change is a guess and every deploy is a séance. The economics of testing are the economics of where you put which kind of test:</p>
+  <figure>
+    <svg viewBox="0 0 880 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Figure 1: the test pyramid. Many fast unit tests at the base, fewer integration tests in the middle, few end-to-end tests at the top, with what each tier buys and costs.">
+      <style>text{font-family:'IBM Plex Mono',monospace}</style>
+      <polygon points="330,30 470,150 190,150" fill="#fdecee" stroke="#cf222e" stroke-width="2"/>
+      <polygon points="190,150 470,150 540,225 120,225" fill="#fff8e6" stroke="#d4a017" stroke-width="2"/>
+      <polygon points="120,225 540,225 610,298 50,298" fill="#e9f7ec" stroke="#2ea043" stroke-width="2"/>
+      <g font-size="13" text-anchor="middle" font-weight="600" fill="#1b1f23">
+        <text x="330" y="125">e2e — few</text>
+        <text x="330" y="195">integration — some</text>
+        <text x="330" y="268">unit — many</text>
+      </g>
+      <g font-size="11" fill="#4b5258">
+        <text x="635" y="78">buys: whole-system confidence</text>
+        <text x="635" y="94">costs: minutes per test, flaky,</text>
+        <text x="635" y="110">blames "the system"</text>
+        <text x="635" y="178">buys: real wiring — DB, HTTP</text>
+        <text x="635" y="194">costs: seconds each, setup</text>
+        <text x="635" y="252">buys: milliseconds, precise blame,</text>
+        <text x="635" y="268">runs on every save</text>
+        <text x="635" y="284">costs: can lie about integration</text>
+      </g>
+      <g stroke="#9aa1a9" stroke-width="1.3" stroke-dasharray="4 4" fill="none">
+        <line x1="430" y1="90" x2="625" y2="90"/>
+        <line x1="510" y1="188" x2="625" y2="188"/>
+        <line x1="580" y1="264" x2="625" y2="264"/>
+      </g>
+    </svg>
+    <figcaption>fig 1 — the pyramid is a budget, not a law: spend most of your runs where they are cheapest and blame is sharpest.</figcaption>
+  </figure>
+  <p>The honest footnote: for thin services that are mostly <em>glue</em> — read from one system, light transform, write to another — the pyramid flattens into a "testing trophy": integration-heavy, because the risk lives in the wiring, not in logic you barely have. That's a legitimate shape. What is never legitimate is the inverted pyramid: hundreds of end-to-end tests, no unit tests, and a 90-minute suite nobody trusts.</p>
+  <h3>the second model: build once, promote many</h3>
+  <figure>
+    <svg viewBox="0 0 740 230" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Figure 2: one artifact built once is promoted unchanged through dev, test and prod; rebuilding per environment is crossed out.">
+      <style>text{font-family:'IBM Plex Mono',monospace}</style>
+      <rect x="30" y="58" width="150" height="52" rx="8" fill="#e8f0fe" stroke="#1f6feb" stroke-width="2"/>
+      <text x="105" y="80" font-size="12" text-anchor="middle" fill="#1b1f23">build artifact</text>
+      <text x="105" y="98" font-size="10" text-anchor="middle" fill="#4b5258">whl 1.4.2 · sha 9f3ab1</text>
+      <g font-size="12" text-anchor="middle">
+        <rect x="250" y="58" width="120" height="52" rx="8" fill="#f6f7f8" stroke="#0969da"/><text x="310" y="80" fill="#1b1f23">dev</text><text x="310" y="98" font-size="10.5" fill="#4b5258">sha 9f3ab1</text>
+        <rect x="420" y="58" width="120" height="52" rx="8" fill="#f6f7f8" stroke="#0969da"/><text x="480" y="80" fill="#1b1f23">test</text><text x="480" y="98" font-size="10.5" fill="#4b5258">sha 9f3ab1</text>
+        <rect x="590" y="58" width="120" height="52" rx="8" fill="#e9f7ec" stroke="#2ea043"/><text x="650" y="80" fill="#1b1f23">prod</text><text x="650" y="98" font-size="10.5" fill="#4b5258">sha 9f3ab1</text>
+      </g>
+      <g stroke="#2ea043" stroke-width="1.8" fill="#2ea043">
+        <line x1="180" y1="84" x2="244" y2="84"/><path d="M244 80 l9 4 -9 4 z"/>
+        <line x1="370" y1="84" x2="414" y2="84"/><path d="M414 80 l9 4 -9 4 z"/>
+        <line x1="540" y1="84" x2="584" y2="84"/><path d="M584 80 l9 4 -9 4 z"/>
+      </g>
+      <text x="392" y="48" font-size="11.5" fill="#2ea043" text-anchor="middle" font-weight="600">promote the same bytes — gates between, no rebuilds</text>
+      <g opacity="0.85">
+        <text x="105" y="172" font-size="12" fill="#cf222e">rebuild for test… rebuild for prod…</text>
+        <text x="105" y="192" font-size="11" fill="#4b5258">“but it’s the same source!” — different deps resolved,</text>
+        <text x="105" y="208" font-size="11" fill="#4b5258">different base image, different Tuesday. you tested something else.</text>
+        <line x1="95" y1="155" x2="365" y2="180" stroke="#cf222e" stroke-width="2.5"/>
+        <line x1="365" y1="155" x2="95" y2="180" stroke="#cf222e" stroke-width="2.5"/>
+      </g>
+    </svg>
+    <figcaption>fig 2 — what passed in test must be byte-identical to what reaches prod. Configuration varies per environment; the artifact never does.</figcaption>
+  </figure>
+</section>
+
+<section id="s04" class="reveal">
+  <span class="chip">stage 04/13 · core_reference · <span class="ok">passed</span> in 3.2s</span>
+  <h2>04 · core reference</h2>
+
+  <h3>pytest: the dozen things that matter</h3>
+  <div class="tblwrap"><table>
+    <tr><th>tool</th><th>what it does</th><th>the line</th></tr>
+    <tr><td><code>fixture</code></td><td>reusable setup with teardown; <code>scope=</code> controls lifetime: <code>function</code> (default) · <code>class</code> · <code>module</code> · <code>session</code></td><td><code>@pytest.fixture(scope="session")</code></td></tr>
+    <tr><td><code>parametrize</code></td><td>one test body, a table of cases — each row reported separately</td><td><code>@pytest.mark.parametrize(...)</code></td></tr>
+    <tr><td>markers</td><td>label tests to select tiers: <code>-m "not slow"</code> in the fast stage</td><td><code>@pytest.mark.slow</code></td></tr>
+    <tr><td><code>tmp_path</code></td><td>a fresh real directory per test, auto-cleaned — never write to the repo</td><td><code>def test_x(tmp_path):</code></td></tr>
+    <tr><td><code>monkeypatch</code></td><td>safely patch env vars / attributes for one test, auto-undone</td><td><code>monkeypatch.setenv("API_URL", ...)</code></td></tr>
+    <tr><td><code>capsys</code></td><td>capture stdout/stderr to assert on printed output</td><td><code>out = capsys.readouterr().out</code></td></tr>
+    <tr><td><code>raises</code></td><td>assert that the right error happens, with the right message</td><td><code>with pytest.raises(ValueError, match="..."):</code></td></tr>
+    <tr><td><code>conftest.py</code></td><td>fixtures shared by every test in that directory and below — no import needed; nearest one wins</td><td><code>tests/conftest.py</code></td></tr>
+  </table></div>
+
+  <h3>the worked example: one feature, three tiers</h3>
+  <p>Nimbus Freight charges a fuel surcharge: 18% of shipment value, +4% in peak season (Nov–Dec), +2% over 1000&nbsp;kg. Here is the same feature tested at all three tiers — note what each tier <em>trusts</em> and what it <em>checks</em>.</p>
+<pre><code><span class="c"># surcharge.py — the unit under test</span>
+PEAK_MONTHS = {11, 12}
+BASE_RATE = 0.18
+
+def fuel_surcharge(s: Shipment) -> float:
+    if s.value_eur &lt; 0 or s.weight_kg &lt;= 0:
+        raise ValueError("invalid shipment")
+    rate = BASE_RATE
+    if s.ship_date.month in PEAK_MONTHS:
+        rate += 0.04
+    if s.weight_kg &gt; 1000:
+        rate += 0.02
+    return round(s.value_eur * rate, 2)</code></pre>
+<pre><code><span class="c"># TIER 1 — unit: pure logic, milliseconds, no I/O. trusts nothing, checks the math.</span>
+@pytest.mark.parametrize(
+    ("ship_date", "weight_kg", "expected"),
+    [
+        (date(2026, 6, 1),  200.0,  180.00),   <span class="c"># base: 18%</span>
+        (date(2026, 12, 1), 200.0,  220.00),   <span class="c"># peak: +4%</span>
+        (date(2026, 6, 1),  1500.0, 200.00),   <span class="c"># heavy: +2%</span>
+        (date(2026, 12, 1), 1500.0, 240.00),   <span class="c"># peak + heavy stack</span>
+    ],
+)
+def test_surcharge_rates(ship_date, weight_kg, expected):
+    s = make_shipment(ship_date=ship_date, weight_kg=weight_kg)
+    assert fuel_surcharge(s) == expected
+
+def test_rejects_negative_value():
+    with pytest.raises(ValueError, match="invalid shipment"):
+        fuel_surcharge(make_shipment(value_eur=-1))</code></pre>
+<pre><code><span class="c"># TIER 2 — integration: the surcharge service against a REAL database in a container.</span>
+<span class="c"># trusts the math (tier 1 checked it), checks the wiring: SQL, schema, serialization.</span>
+def test_surcharge_persisted_round_trip(quote_repo):      <span class="c"># quote_repo: testcontainers fixture</span>
+    quote = quote_repo.create_quote(shipment_id="NF-1042", value_eur=1000.0)
+    stored = quote_repo.get_quote(quote.id)
+    assert stored.surcharge_eur == 180.00                 <span class="c"># survived the DB round trip intact</span>
+
+<span class="c"># TIER 3 — e2e: hit the running API like a client would. trusts everything below,</span>
+<span class="c"># checks that the system is actually assembled. keep these to the critical paths.</span>
+def test_quote_endpoint_returns_surcharge(api_client):
+    resp = api_client.post("/quotes", json={"shipment_id": "NF-1042", "value_eur": 1000.0})
+    assert resp.status_code == 201
+    assert resp.json()["surcharge_eur"] == 180.00</code></pre>
+
+  <h3>test doubles, in five lines</h3>
+  <div class="tblwrap"><table>
+    <tr><th>double</th><th>it…</th></tr>
+    <tr><td><strong>dummy</strong></td><td>fills a parameter slot; never actually used</td></tr>
+    <tr><td><strong>stub</strong></td><td>returns canned answers ("the FX rate is 1.08")</td></tr>
+    <tr><td><strong>fake</strong></td><td>a working lightweight implementation (in-memory repo)</td></tr>
+    <tr><td><strong>mock</strong></td><td>pre-programmed with expectations; the test asserts on <em>interactions</em></td></tr>
+    <tr><td><strong>spy</strong></td><td>a real object that also records what was called on it</td></tr>
+  </table></div>
+
+  <h3>the mocking rules</h3>
+  <div class="note"><b>WHERE MOCKS BELONG</b>
+  Mock at the <strong>boundaries</strong> of your system — HTTP calls, the clock, the filesystem, the database. Never mock your own business logic: a test that mocks <code>fuel_surcharge</code> to test code that calls <code>fuel_surcharge</code> verifies nothing except your ability to type the same number twice.</div>
+  <div class="alarm"><b>DON'T MOCK WHAT YOU DON'T OWN</b>
+  Mocking a third-party client (<code>boto3</code>, <code>requests</code>, a vendor SDK) couples your tests to someone else's API shape — they pass forever while the real integration breaks. Wrap the dependency in a thin adapter you own (<code>FxRateClient.get_rate()</code>), mock <em>the adapter</em> in unit tests, and test the adapter itself against the real thing (or a contract test) at the integration tier.</div>
+
+  <h3>coverage honesty</h3>
+  <p>Measure <strong>branch coverage</strong>, not line coverage: <code>if peak: rate += 0.04</code> is one line but two paths, and line coverage is satisfied when you've tested one of them. And remember Goodhart: <strong>coverage is a thermometer — the moment it becomes a target, it stops measuring.</strong> A team paid in coverage points will produce assert-free tests by Thursday. Use it to find untested code, not to grade developers.</p>
+
+  <h3>typing: the strictness ladder</h3>
+  <p>pyright's <code>typeCheckingMode</code> goes <code>off → basic → standard → strict</code> (mypy has an equivalent ladder ending in <code>--strict</code>). Start new code at <code>strict</code>; ratchet legacy code up one rung at a time, never down. The placement rule: <strong>pydantic at the system's boundaries</strong> — parse and validate the outside world once, at the door — and <strong>plain typed objects inside</strong>, where data is already trusted and validation would just be overhead re-checking itself.</p>
+
+  <h3>logging that someone can grep at 3am</h3>
+<pre><code><span class="c"># structured logging: JSON to stdout — the platform ships it, you don't manage files</span>
+import logging, json, sys
+
+def emit(level, msg, **fields):
+    record = {"level": level, "msg": msg, **fields}
+    print(json.dumps(record), file=sys.stdout)
+
+emit("info", "quote priced",
+     correlation_id=req_id,        <span class="c"># the same id flows through every service the request touches —</span>
+     shipment_id="NF-1042",        <span class="c"># one grep reconstructs the whole journey</span>
+     surcharge_eur=180.00)</code></pre>
+  <p>Levels that mean something: <code>DEBUG</code> = for the author, off in prod · <code>INFO</code> = business events, one per meaningful action · <code>WARNING</code> = degraded but coping · <code>ERROR</code> = a human should look today · <code>CRITICAL</code> = a human should look <em>now</em>. If everything logs at <code>INFO</code>, nothing does.</p>
+
+  <h3>error handling in three rules</h3>
+  <p><strong>Raise early</strong> — validate at the boundary and fail with a message that names the problem. <strong>Catch late</strong> — only catch where you can actually do something (retry, translate, exit with a meaningful code — see step 04 of the setup guide). And <strong>never</strong> <code>except: pass</code> — that line doesn't handle errors, it hides bodies.</p>
+</section>
+
+<section id="s05" class="reveal">
+  <span class="chip">stage 05/13 · ide_setup · <span class="ok">passed</span> in 1.8s</span>
+  <h2>05 · the IDE: stop testing in the terminal like it's 2009</h2>
+  <p>Your IDE will run, debug, and re-run a <em>single test</em> from a gutter icon. This is the inner loop's accelerator pedal:</p>
+  <div class="tblwrap"><table>
+    <tr><th>you want to…</th><th>VS Code</th><th>PyCharm</th></tr>
+    <tr><td>run one test</td><td>▶ gutter icon, or Testing panel (flask icon)</td><td>▶ gutter icon next to the test</td></tr>
+    <tr><td>enable discovery</td><td><code>Python: Configure Tests</code> → pytest → tests dir</td><td>Settings → Tools → Python Integrated Tools → pytest</td></tr>
+    <tr><td>debug a failing assert</td><td>🐞 on the gutter icon → breakpoint on the assert</td><td>right-click test → Debug</td></tr>
+    <tr><td>re-run last failures</td><td>Testing panel → Rerun Failed</td><td>Rerun Failed Tests button</td></tr>
+  </table></div>
+  <p>The career upgrade hiding in this table: when an assert fails, <strong>debug into it</strong> — breakpoint on the assert line, inspect the actual objects, walk up the stack. That is strictly more information than the print-spam loop (add print, rerun, add another print, rerun), and it doesn't leave debris in the diff.</p>
+  <div class="alarm"><b>BUTTONS THAT BITE</b>
+  IDE test discovery silently binds to <em>an</em> interpreter — not necessarily your project's venv. The classic failure: tests "pass" in the IDE against a stale installed copy of your package while the terminal says otherwise. If IDE and CLI disagree, check the interpreter in the status bar first. Trust <code>pytest</code> in the project venv; the IDE is a convenience view of it, not the truth.</div>
+</section>
+
+<section id="s06" class="reveal">
+  <span class="chip">stage 06/13 · configs_that_pay_rent · <span class="ok">passed</span> in 2.4s</span>
+  <h2>06 · configs that pay rent</h2>
+  <p>Steal these. Every line is commented because config you don't understand is config you can't debug.</p>
+<pre><code><span class="c"># pyproject.toml — the test &amp; coverage contract, versioned with the code</span>
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"     <span class="c"># -ra: summarize all non-passes; strict-markers:</span>
+                                     <span class="c"># a typo'd @pytest.mark.slwo is an error, not a silent no-op</span>
+markers = [
+    "slow: deselected in the fast stage (run with -m slow)",
+    "integration: needs containers/services",
+]
+
+[tool.coverage.run]
+branch = true                        <span class="c"># branch coverage, not line coverage (see 04)</span>
+source = ["src"]
+
+[tool.coverage.report]
+fail_under = 80                      <span class="c"># a floor against regression, not a target to game</span>
+show_missing = true                  <span class="c"># print the exact uncovered lines in the summary</span></code></pre>
+<pre><code><span class="c"># tests/conftest.py — shared fixtures; available to every test below this directory</span>
+import pytest
+from datetime import date
+from surcharge import Shipment
+
+@pytest.fixture
+def make_shipment():
+    <span class="c"># a factory fixture: each test states only what it cares about,</span>
+    <span class="c"># defaults stay in exactly one place</span>
+    def _make(**overrides):
+        defaults = dict(value_eur=1000.0, weight_kg=200.0, ship_date=date(2026, 6, 1))
+        return Shipment(**{**defaults, **overrides})
+    return _make
+
+@pytest.fixture(scope="session")
+def api_client():
+    <span class="c"># session scope: built once for the whole run — pay expensive setup once</span>
+    from myapp import create_app
+    app = create_app(config="test")
+    with app.test_client() as client:
+        yield client                 <span class="c"># everything after yield is teardown</span></code></pre>
+
+  <h3>pipeline anatomy — <em>anatomy, not syntax</em></h3>
+  <p>The YAML below runs nowhere. It exists to name the parts; the rosetta table translates them into your platform's dialect.</p>
+<pre><code><span class="c"># generic-pipeline.yaml — ANATOMY, NOT SYNTAX. every platform has these six organs.</span>
+trigger:                       <span class="c"># WHEN: pushes to main + all pull requests</span>
+  - pull_request
+  - push: [main]
+
+stages:
+  - name: lint                 <span class="c"># STAGE: a named phase; fails fast, costs seconds</span>
+    steps:
+      - run: ruff check .
+
+  - name: typecheck
+    steps:
+      - run: pyright
+
+  - name: test
+    steps:
+      - run: pytest -m "not slow" --cov --cov-branch
+    cache: ~/.cache/pip        <span class="c"># CACHE: speed only — correctness must survive a cold cache</span>
+
+  - name: build
+    steps:
+      - run: python -m build
+    artifact: dist/*.whl       <span class="c"># ARTIFACT: the build's output, stored once, promoted (fig 2)</span>
+
+  - name: deploy
+    environment: prod          <span class="c"># ENVIRONMENT: deploy target with rules attached</span>
+    approval: required         <span class="c"># GATE: the human click that makes this "delivery" not "deployment"</span>
+    secrets: [PROD_DB_URL]     <span class="c"># SECRET: injected from the platform vault at runtime</span>
+    steps:
+      - run: ./deploy.sh dist/*.whl</code></pre>
+
+  <h3 id="rosetta">the rosetta table</h3>
+  <div class="tblwrap"><table>
+    <tr><th>concept</th><th>Azure DevOps</th><th>GitHub Actions</th><th>GitLab CI</th></tr>
+    <tr><td>pipeline definition</td><td><code>azure-pipelines.yml</code></td><td><code>.github/workflows/*.yml</code></td><td><code>.gitlab-ci.yml</code></td></tr>
+    <tr><td>stage / job / step</td><td>stage → job → step/task</td><td>workflow → job → step</td><td>stage → job → <code>script</code> lines</td></tr>
+    <tr><td>artifact</td><td>pipeline artifacts (<code>publish</code>)</td><td><code>actions/upload-artifact</code></td><td><code>artifacts:</code> keyword</td></tr>
+    <tr><td>cache</td><td><code>Cache@2</code> task</td><td><code>actions/cache</code></td><td><code>cache:</code> keyword</td></tr>
+    <tr><td>secret</td><td>variable groups / Key Vault link</td><td>repo &amp; environment secrets</td><td>masked CI/CD variables</td></tr>
+    <tr><td>environment + approval</td><td>environments with checks</td><td>environments with protection rules</td><td>environments + <code>when: manual</code></td></tr>
+    <tr><td>trigger</td><td><code>trigger:</code> / <code>pr:</code></td><td><code>on:</code></td><td><code>rules:</code> / <code>workflow:</code></td></tr>
+  </table></div>
+  <div class="alarm"><b>THE SECRETS RULE</b>
+  Secrets come from the platform's secret store and are injected at runtime, masked in logs. A secret written in YAML is not a secret — it's a credential with a commit history. If one ever prints in a log: it's burned, <a href="#s10">rotate it first</a>, fix the masking second.</div>
+</section>
+
+<section id="s07" class="reveal">
+  <span class="chip">stage 07/13 · testing_the_hard_stuff · <span class="ok">passed</span> in 4.1s</span>
+  <h2>07 · testing the hard stuff</h2>
+  <p>The four horsemen of the untestable: time, randomness, the filesystem, and the network. Each has a standard weapon.</p>
+
+  <h3>time: freeze it</h3>
+<pre><code><span class="c"># pip install time-machine   (freezegun is the older classic; both are maintained,</span>
+<span class="c"># time-machine is faster — pin whichever you pick)</span>
+import time_machine
+from datetime import datetime, timezone
+
+@time_machine.travel("2026-12-24 09:00 +0000")
+def test_peak_season_detected():
+    <span class="c"># inside this test, "now" is frozen at Christmas Eve — peak season, deterministic</span>
+    assert datetime.now(timezone.utc).month == 12</code></pre>
+  <p>Better still: don't let code call <code>datetime.now()</code> deep inside logic. Pass the date <em>in</em> (like <code>fuel_surcharge</code> does with <code>ship_date</code>) and most of your time-testing problem evaporates — the freezer is for the boundary code that remains.</p>
+
+  <h3>randomness: seed it</h3>
+<pre><code>rng = random.Random(42)        <span class="c"># inject the generator; tests pass a seeded one.</span>
+                               <span class="c"># global random.seed(42) works but is shared mutable state —</span>
+                               <span class="c"># the same disease your tests are trying to cure</span></code></pre>
+
+  <h3>filesystem: <code>tmp_path</code></h3>
+<pre><code>def test_manifest_writer(tmp_path):
+    out = tmp_path / "manifest.json"          <span class="c"># real dir, unique per test, auto-cleaned</span>
+    write_manifest(out, shipments=["NF-1042"])
+    assert json.loads(out.read_text())["count"] == 1</code></pre>
+
+  <h3>HTTP: mock the wire, not your wrapper's logic</h3>
+<pre><code><span class="c"># respx mocks httpx; the `responses` library does the same for requests — match your client</span>
+import respx, httpx
+
+@respx.mock
+def test_fx_client_handles_rate():
+    respx.get("https://fx.example.com/rate/EUR").mock(
+        return_value=httpx.Response(200, json={"rate": 1.08})
+    )
+    assert FxRateClient().get_rate("EUR") == 1.08   <span class="c"># your adapter, real httpx machinery,</span>
+                                                    <span class="c"># no network — record/replay (vcr-style)</span>
+                                                    <span class="c"># is the alternative for messier APIs</span></code></pre>
+
+  <h3>databases: the honest trade-off</h3>
+  <div class="versus">
+    <div class="card"><h4>in-memory SQLite</h4><p>Fast, zero infrastructure — and it <strong>lies</strong>: types, constraints, SQL dialect and concurrency all differ from your real database. Fine for unit-tier repo logic.</p></div>
+    <div class="card"><h4>testcontainers</h4><p>Spins up the <strong>real</strong> database in Docker per test session. Slow to start, completely honest. This is the integration tier.</p></div>
+  </div>
+<pre><code><span class="c"># pip install testcontainers[postgres]  — the integration-tier fixture</span>
+from testcontainers.postgres import PostgresContainer
+
+@pytest.fixture(scope="session")
+def pg_url():
+    with PostgresContainer("postgres:16") as pg:    <span class="c"># pin the version your prod runs</span>
+        yield pg.get_connection_url()</code></pre>
+  <p>Use <strong>both</strong>, at different tiers — fast liar for logic, slow truth for wiring. Spark/Databricks pipelines have their own version of this whole chapter: that's Module B, the Spark Survival Guide.</p>
+</section>
+
+<section id="s08" class="reveal">
+  <span class="chip">stage 08/13 · the_most_wanted · <span class="bad">FAILED</span> in 2m04s</span>
+  <h2>08 · the most wanted</h2>
+  <p>Eight repeat offenders. All of them have written code you maintain.</p>
+  <div class="posters">
+    <div class="poster"><span class="mug">🧸</span><h4>The Mock-Everything</h4>
+      <p class="crime"><strong>Crime:</strong> mocks their own business logic. The suite is green, fast, and tests nothing; prod burns while 400 mocks applaud.</p>
+      <div class="bounty"><b>THE FIX</b><br>Mock only at boundaries (HTTP, clock, fs, db). If you mocked something you wrote, delete the mock or the test.</div></div>
+    <div class="poster"><span class="mug">💯</span><h4>The 100%-Coverage Cultist</h4>
+      <p class="crime"><strong>Crime:</strong> hit the coverage target with tests that call everything and assert nothing. The thermometer reads perfect; the patient is dead.</p>
+      <div class="bounty"><b>THE FIX</b><br>Branch coverage as a floor (<code>fail_under</code>), code review asks "what would make this test fail?"</div></div>
+    <div class="poster"><span class="mug">😴</span><h4>The Flaky-Test Snoozer</h4>
+      <p class="crime"><strong>Crime:</strong> made "rerun until green" an official team workflow. The pipeline is now a slot machine with worse odds.</p>
+      <div class="bounty"><b>THE FIX</b><br>Quarantine marker + tracking issue, root-cause within the sprint. A flaky test is a failing test.</div></div>
+    <div class="poster"><span class="mug">⏰</span><h4>The sleep(5) Fixer</h4>
+      <p class="crime"><strong>Crime:</strong> "fixes" race conditions by waiting. The race is still there; it just brought a book. CI is 40 minutes slower and still flaky.</p>
+      <div class="bounty"><b>THE FIX</b><br>Wait on <em>conditions</em>, not clocks: poll-with-timeout for the event you actually need.</div></div>
+    <div class="poster"><span class="mug">🫥</span><h4>The Assert-Free Test</h4>
+      <p class="crime"><strong>Crime:</strong> calls the function, asserts nothing. Technically a smoke test; mostly just smoke.</p>
+      <div class="bounty"><b>THE FIX</b><br>Every test states an expected outcome. No assert, no merge.</div></div>
+    <div class="poster"><span class="mug">🚪</span><h4>The Pipeline Bypasser</h4>
+      <p class="crime"><strong>Crime:</strong> deploys from their laptop, "just this once," for the fourth time this month. Nobody knows which version prod runs, including prod.</p>
+      <div class="bounty"><b>THE FIX</b><br>Deploys happen from the pipeline only; the artifact registry is the source of truth. Break-glass procedure exists, is logged, and is boring.</div></div>
+    <div class="poster"><span class="mug">🌌</span><h4>The God Fixture</h4>
+      <p class="crime"><strong>Crime:</strong> one 400-line session fixture every test depends on. Change one field, 90 tests fail, none of them say why.</p>
+      <div class="bounty"><b>THE FIX</b><br>Small factory fixtures; each test declares only the state it cares about.</div></div>
+    <div class="poster"><span class="mug">🖨️</span><h4>The Print Debugger</h4>
+      <p class="crime"><strong>Crime:</strong> escaped the setup guide, now debugging CI by adding prints and pushing. Commit log: "debug", "debug2", "DEBUG WHY".</p>
+      <div class="bounty"><b>THE FIX</b><br>Reproduce locally with the failing test (<code>--lf</code>), use the debugger; in CI, structured logs already hold the answer.</div></div>
+  </div>
+</section>
+
+<section id="s09" class="reveal">
+  <span class="chip">stage 09/13 · the_eternal_debate · <span class="ok">passed</span> in 0.9s</span>
+  <h2>09 · the eternal debate: mocks vs real dependencies</h2>
+  <div class="versus">
+    <div class="card"><h4>team mock</h4><p>"Real dependencies are slow, flaky, and need Docker. Mock everything; the suite runs in 4 seconds and never fails for fake reasons."</p><p><em>Fails when:</em> the mocks drift from reality and the suite becomes a museum of how the system used to work.</p></div>
+    <div class="card"><h4>team real</h4><p>"Mocks test your assumptions, not your system. Run everything against real services; what passes actually works."</p><p><em>Fails when:</em> a 40-minute suite that needs six containers means nobody runs tests before pushing — so nobody runs tests.</p></div>
+  </div>
+  <p>Settled in one sentence, sixty seconds early:</p>
+  <div class="fix"><b>THE RULE</b>
+  <strong>Fakes at the unit tier, real things at the integration tier, and never mock what you don't own.</strong> Both camps are right — at different floors of the pyramid.</div>
+</section>
+
+<section id="s10" class="reveal">
+  <span class="chip">stage 10/13 · sos_pipeline_red · <span class="bad">FAILED</span> · release: today</span>
+  <h2>10 · SOS — the pipeline is red and the release is today</h2>
+  <p>Breathe. Read the failing stage's log <em>top to bottom once</em> before touching anything. Then find your scenario:</p>
+
+  <h3>"The same test fails every third run." — flaky-test triage</h3>
+<pre><code><span class="c"># 1. quarantine it NOW so it stops blocking everyone — visibly, with a paper trail</span>
+@pytest.mark.flaky_quarantine          <span class="c"># custom marker, registered in pyproject</span>
+<span class="c"># pipeline fast stage runs: pytest -m "not flaky_quarantine"  + an issue with an owner</span>
+
+<span class="c"># 2. get rerun statistics locally — how flaky is it, and does order matter?</span>
+pytest tests/test_dispatch.py -q --count=50    <span class="c"># pip install pytest-repeat</span>
+pytest -p no:randomly -q                       <span class="c"># if you use pytest-randomly: does fixed order "fix" it?</span></code></pre>
+  <p>3. Root-cause it. Flakiness has exactly five causes — check them in this order: <strong>time</strong> (midnight/DST/timezone assumptions), <strong>ordering</strong> (test B depends on test A's leftovers), <strong>shared state</strong> (module globals, class attributes, reused fixtures), <strong>network</strong> (real calls hiding in the unit tier), <strong>concurrency</strong> (actual races — the only genuinely hard one, and the rarest).</p>
+
+  <h3>"Green locally, red in CI."</h3>
+  <p>The runner is not your laptop. The usual suspects, in order of likelihood:</p>
+  <ul>
+    <li><strong>Env vars</strong> — your shell exports things the runner has never heard of. Check what the test actually reads; <code>monkeypatch.setenv</code> what it needs.</li>
+    <li><strong>Services</strong> — locally you have Postgres running; the runner needs it declared as a service container. "Connection refused" in CI is this, 90% of the time.</li>
+    <li><strong>Parallelism</strong> — CI runs <code>-n auto</code>, your laptop doesn't. Two tests writing the same path or table collide only where it's harder to debug. Reproduce locally <em>with</em> <code>-n auto</code> first.</li>
+    <li><strong>Timezone/locale</strong> — runners speak UTC and C.UTF-8. Your "works at noon in Athens" date math doesn't.</li>
+  </ul>
+
+  <h3>"The suite takes 25 minutes and everyone hates it."</h3>
+<pre><code><span class="c"># profile FIRST — never optimize a suite you haven't measured</span>
+pytest --durations=10                <span class="c"># the ten slowest tests; usually 3 tests own 80% of the pain</span>
+
+<span class="c"># then parallelize (pip install pytest-xdist)</span>
+pytest -n auto                       <span class="c"># one worker per core — requires tests that don't share state,</span>
+                                     <span class="c"># which you wanted anyway</span>
+
+<span class="c"># then split tiers: fast stage on every push, slow stage on merge</span>
+pytest -m "not slow"                 <span class="c"># the every-push gate: seconds</span>
+pytest -m slow                       <span class="c"># the pre-merge / nightly gate: minutes, allowed</span></code></pre>
+
+  <h3>"Coverage gate failed but the code is fine."</h3>
+  <p>Read the <strong>diff coverage</strong> — which <em>new</em> lines are untested (<code>show_missing = true</code> prints them). Almost always it's a real untested branch in your change: the <code>except</code> path, the <code>else</code> nobody triggers. Write the missing test. Lowering <code>fail_under</code> to ship is borrowing from a loan shark — the gate exists for the next person, who is you in three weeks.</p>
+
+  <h3>"A secret printed in the logs."</h3>
+  <p><strong>Rotate first.</strong> The credential is burned the moment it rendered — logs are archived, forwarded, and screenshotted. Revoke and reissue from the secret store, <em>then</em> fix the masking and add a log-scanning check. (If it also landed in git history, that's the git module's emergency chapter — same rule: rotation beats history rewriting, every time.)</p>
+
+  <h3>know your pytest selection flavors</h3>
+  <div class="tblwrap"><table>
+    <tr><th>flag</th><th>selects</th><th>reach for it when</th></tr>
+    <tr><td><code>-k "expr"</code></td><td>tests whose name matches</td><td>"run everything with <em>surcharge</em> in the name"</td></tr>
+    <tr><td><code>-m "expr"</code></td><td>tests with matching markers</td><td>tier selection: <code>-m "not slow"</code></td></tr>
+    <tr><td><code>--lf</code></td><td>only the tests that failed last run</td><td>the fix-verify loop after a red run</td></tr>
+    <tr><td><code>--ff</code></td><td>all tests, previous failures first</td><td>full confidence, fastest bad news</td></tr>
+    <tr><td><code>-x</code></td><td>stop at the first failure</td><td>drilling one bug without 40 screens of noise</td></tr>
+    <tr><td><code>-n auto</code></td><td>all, in parallel (pytest-xdist)</td><td>the suite is slow and tests are independent</td></tr>
+  </table></div>
+
+  <div class="alarm"><b>🚨 THE GOLDEN RULE</b>
+  <strong>A flaky test is a failing test.</strong> Quarantine it with an owner and a deadline, or fix it now — but the rerun button is not a fix. Every push of that button teaches the team that red doesn't mean anything, and a pipeline nobody believes is more dangerous than no pipeline at all.</div>
+
+  <h3>bonus weapon: Hypothesis 🔮</h3>
+  <p>Property-based testing: you state a property that must hold for <em>all</em> inputs; Hypothesis generates hundreds of adversarial cases and then <strong>shrinks</strong> any failure to the smallest example. It finds the edge case you wouldn't have written:</p>
+<pre><code><span class="c"># pip install hypothesis</span>
+from hypothesis import given, strategies as st
+
+def split_invoice(total_cents: int, parts: int) -> list[int]:
+    return [total_cents // parts] * parts        <span class="c"># looks fine. it is not fine.</span>
+
+@given(total=st.integers(min_value=0, max_value=1_000_000),
+       parts=st.integers(min_value=1, max_value=20))
+def test_split_preserves_total(total, parts):
+    assert sum(split_invoice(total, parts)) == total
+
+<span class="r">Falsifying example: test_split_preserves_total(total=1, parts=2)</span>
+<span class="c"># integer division ate a cent. Hypothesis found it in milliseconds and shrank</span>
+<span class="c"># the failure to the minimal case — 1 cent, 2 parts. invoice math, saved.</span></code></pre>
+</section>
+
+<section id="s11" class="reveal">
+  <span class="chip">stage 11/13 · boss_fight · <span class="wait">⏳ awaiting approval</span></span>
+  <h2>11 · boss fight</h2>
+  <p>Five questions. The deploy-to-prod approval gate is watching.</p>
+
+  <div class="q" data-a="1"><p class="qq">1. Why does the pyramid want many unit tests and few e2e tests?</p>
+    <label><input type="radio" name="q1" value="0"> e2e tests are deprecated since pytest 9</label>
+    <label><input type="radio" name="q1" value="1"> unit tests are milliseconds-cheap and point at the exact broken function; e2e tests are slow, flakier, and blame "the system"</label>
+    <label><input type="radio" name="q1" value="2"> because triangles are the strongest shape — it's basic engineering</label>
+    <label><input type="radio" name="q1" value="3"> unit tests catch every bug that e2e tests catch, so e2e adds nothing</label>
+  </div>
+  <div class="q" data-a="2"><p class="qq">2. Unit-testing surcharge logic that calls an external FX-rate API through your <code>FxRateClient</code> wrapper. What do you mock?</p>
+    <label><input type="radio" name="q2" value="0"> nothing — unit tests should hit the real FX API for realism</label>
+    <label><input type="radio" name="q2" value="1"> <code>fuel_surcharge</code> itself, so the test can never fail and morale stays high</label>
+    <label><input type="radio" name="q2" value="2"> the <code>FxRateClient</code> wrapper you own — the boundary; the wrapper itself gets tested against the real API at the integration tier</label>
+    <label><input type="radio" name="q2" value="3"> the third-party HTTP library's internals, deep enough that no one can review it</label>
+  </div>
+  <div class="q" data-a="1"><p class="qq">3. A test fails roughly every third CI run. The team should…</p>
+    <label><input type="radio" name="q3" value="0"> add the rerun-failed-jobs button to the release checklist</label>
+    <label><input type="radio" name="q3" value="1"> quarantine it visibly with an owner, then root-cause: time, ordering, shared state, network, or concurrency</label>
+    <label><input type="radio" name="q3" value="2"> add <code>sleep(5)</code> — time heals all wounds, even race conditions</label>
+    <label><input type="radio" name="q3" value="3"> delete the test; it has clearly served its purpose</label>
+  </div>
+  <div class="q" data-a="3"><p class="qq">4. The artifact passed dev but failed in the test environment. What goes to prod?</p>
+    <label><input type="radio" name="q4" value="0"> the same artifact — it passed dev, and dev is basically prod with lower self-esteem</label>
+    <label><input type="radio" name="q4" value="1"> a fresh rebuild from the same commit, directly to prod — same source, same thing</label>
+    <label><input type="radio" name="q4" value="2"> a hotfix built on the prod server itself, where the vibes are better</label>
+    <label><input type="radio" name="q4" value="3"> nothing — fix the issue, build once, and promote that same artifact through every environment in order</label>
+  </div>
+  <div class="q" data-a="2"><p class="qq">5. The suite reports 100% line coverage. What do you actually know?</p>
+    <label><input type="radio" name="q5" value="0"> the code is formally proven correct; delete the QA budget</label>
+    <label><input type="radio" name="q5" value="1"> every possible input has been tested at least once</label>
+    <label><input type="radio" name="q5" value="2"> every line executed at least once — nothing about branches taken or whether any assertion would catch a bug</label>
+    <label><input type="radio" name="q5" value="3"> the tests are good, because a number this round doesn't lie</label>
+  </div>
+  <button class="btn" id="grade">request deploy approval ▸</button>
+  <p id="verdict" aria-live="polite"></p>
+</section>
+
+<section id="s12" class="reveal">
+  <span class="chip">stage 12/13 · resources · <span class="wait">⏳ queued</span></span>
+  <h2>12 · resources worth your evening</h2>
+  <ul>
+    <li><a href="https://docs.pytest.org/en/stable/how-to/index.html">pytest how-to guides</a> — the official docs' practical half; fixtures and parametrize explained by the people who built them.</li>
+    <li><a href="https://martinfowler.com/articles/practical-test-pyramid.html">Ham Vocke — The Practical Test Pyramid</a> — the single best long-read on what to test where, with real code.</li>
+    <li><a href="https://testing.googleblog.com/2010/12/test-sizes.html">Google Testing Blog — Test Sizes</a> — Google's small/medium/large framing; the pyramid with resource limits attached.</li>
+    <li><a href="https://hypothesis.readthedocs.io/">Hypothesis documentation</a> — property-based testing; start with the quick-start, steal the strategies reference.</li>
+    <li><a href="https://testcontainers-python.readthedocs.io/">testcontainers-python</a> — real databases in your integration tier, one context manager away.</li>
+    <li><a href="https://exercism.org/tracks/python">Exercism Python track</a> 🎮 — free test-driven katas: every exercise starts from failing tests, which is exactly the habit.</li>
+    <li><a href="https://cyber-dojo.org/">cyber-dojo</a> 🎮 — group TDD practice in the browser; run one as a team retro activity and watch the inner loop click.</li>
+  </ul>
+
+  <div class="genbox">
+    <strong>🎲 overheard at the red pipeline</strong> — excuses, live from the incident channel:
+    <br><button class="btn" id="genbtn" style="margin-top:.6rem">generate excuse</button>
+    <p id="genout" aria-live="polite"></p>
+  </div>
+</section>
+
+<footer>
+  <p>Survival Guide Series — <a href="/collaboration-bootcamp/consultant-setup-survival-guide/">the setup guide</a> · <a href="/collaboration-bootcamp/git-survival-guide/">the git guide</a> · the Spark guide (Module B, in the queue)</p>
+  <p style="margin-top:.6rem">pipeline #4127 · <span id="egg">✓ all checks passed</span> · 0 warnings · artifacts retained for 30 days</p>
+</footer>
+
+</main>
+</div>
+
+<script>
+(function(){
+"use strict";
+const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- hero typing ---------- */
+const heroLines = [
+  {t:'$ git push origin feature/quote-totals', cls:''},
+  {t:'→ pipeline #4127 started', cls:'dim'},
+  {t:'✓ lint        passed in 12s', cls:'ok'},
+  {t:'✓ typecheck   passed in 31s', cls:'ok'},
+  {t:'✗ test        FAILED in 2m04s', cls:'bad'},
+  {t:"  FAILED test_quote.py::test_total — AssertionError: 'Hello, World' != 'Hello, World '", cls:'bad'},
+  {t:'  hint: trailing space. two hours of your life. we need to talk.', cls:'dim'},
+  {t:'→ opening the pipeline survival guide…', cls:''}
+];
+const hero = document.getElementById('heroBody');
+function renderHeroStatic(){
+  hero.innerHTML = heroLines.map(l=>'<span class="'+l.cls+'">'+escapeHtml(l.t)+'</span>').join('\n');
+}
+function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+document.getElementById('heroSizer').innerHTML =
+  heroLines.map(l=>'<span class="'+l.cls+'">'+escapeHtml(l.t)+'</span>').join('\n');
+if(reduced){ renderHeroStatic(); }
+else{
+  let li=0, ci=0, out='';
+  function tick(){
+    if(li>=heroLines.length){
+      setTimeout(()=>{out='';li=0;ci=0;hero.innerHTML='<span class="cur"></span>';setTimeout(tick,600);},6000);
+      return;
+    }
+    const line=heroLines[li];
+    ci++;
+    const done=heroLines.slice(0,li).map(l=>'<span class="'+l.cls+'">'+escapeHtml(l.t)+'</span>').join('\n');
+    const cur='<span class="'+line.cls+'">'+escapeHtml(line.t.slice(0,ci))+'</span>';
+    hero.innerHTML=(done?done+'\n':'')+cur+'<span class="cur"></span>';
+    if(ci>=line.t.length){ li++; ci=0; setTimeout(tick, li===5?500:280); }
+    else setTimeout(tick, line.t.startsWith('$')?38:12);
+  }
+  hero.innerHTML='<span class="cur"></span>';
+  setTimeout(tick,500);
+}
+
+/* ---------- scroll reveal ---------- */
+if(!reduced && 'IntersectionObserver' in window){
+  const io=new IntersectionObserver(es=>es.forEach(e=>{
+    if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}
+  }),{threshold:.08});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+}else{
+  document.querySelectorAll('.reveal').forEach(el=>el.classList.add('in'));
+}
+
+/* ---------- copy buttons ---------- */
+document.querySelectorAll('pre').forEach(pre=>{
+  const b=document.createElement('button');
+  b.className='copy'; b.type='button'; b.textContent='copy';
+  b.addEventListener('click',()=>{
+    const txt=pre.innerText.replace(/^copy\n?/,'');
+    navigator.clipboard.writeText(txt).then(()=>{
+      b.textContent='copied ✓'; setTimeout(()=>b.textContent='copy',1500);
+    }).catch(()=>{ b.textContent='ctrl+c?'; setTimeout(()=>b.textContent='copy',1500); });
+  });
+  pre.appendChild(b);
+});
+
+/* ---------- panic ---------- */
+document.getElementById('panic').addEventListener('click',()=>{
+  document.body.classList.remove('flash'); void document.body.offsetWidth;
+  document.body.classList.add('flash');
+  document.getElementById('s10').scrollIntoView({behavior:reduced?'auto':'smooth'});
+});
+
+/* ---------- confetti ---------- */
+function confetti(){
+  if(reduced) return;
+  const colors=['#1f6feb','#2ea043','#d4a017','#cf222e','#0969da'];
+  for(let i=0;i<90;i++){
+    const c=document.createElement('div');
+    c.className='confetti';
+    const s=6+Math.random()*7;
+    c.style.cssText='left:'+(Math.random()*100)+'vw;width:'+s+'px;height:'+(s*0.6)+'px;background:'+
+      colors[i%colors.length]+';transform:rotate('+(Math.random()*360)+'deg)';
+    document.body.appendChild(c);
+    const fall=c.animate(
+      [{transform:c.style.transform+' translateY(0)',opacity:1},
+       {transform:'rotate('+(Math.random()*720)+'deg) translateY(105vh)',opacity:.7}],
+      {duration:2200+Math.random()*1800,easing:'cubic-bezier(.2,.6,.4,1)'});
+    fall.onfinish=()=>c.remove();
+  }
+}
+
+/* ---------- quiz ---------- */
+const ranks=[
+  {min:0,max:1,txt:'0–1 · Deploys from Laptop ☠️ — prod is held together by your optimism alone.'},
+  {min:2,max:3,txt:'2–3 · Stage Passer — lint and typecheck love you; the test stage has questions.'},
+  {min:4,max:4,txt:'4 · Gatekeeper — one flaky answer away from greatness.'},
+  {min:5,max:5,txt:'5/5 · The Pipeline Whisperer 🧙 — your releases are boring, which is the highest praise.'}
+];
+document.getElementById('grade').addEventListener('click',()=>{
+  let score=0, answered=0;
+  document.querySelectorAll('.q').forEach(q=>{
+    const correct=q.dataset.a;
+    const picked=q.querySelector('input:checked');
+    q.querySelectorAll('label').forEach(l=>l.classList.remove('good','bad'));
+    const labels=q.querySelectorAll('label');
+    labels[correct].classList.add('good');
+    if(picked){
+      answered++;
+      if(picked.value===correct){score++;}
+      else{picked.closest('label').classList.add('bad');}
+    }
+  });
+  const v=document.getElementById('verdict');
+  if(answered<5){ v.textContent='⏳ approval blocked: '+(5-answered)+' question(s) unanswered.'; return; }
+  const r=ranks.find(r=>score>=r.min&&score<=r.max);
+  v.textContent='score '+score+'/5 — '+r.txt;
+  if(score===5) confetti();
+});
+
+/* ---------- generator ---------- */
+const excuses=[
+  '“works on rerun.”',
+  '“the runner was tired.”',
+  '“coverage dropped because we deleted dead code, which is somehow bad now.”',
+  '“it’s flaky, ignore it.” (it was the payment test)',
+  '“it passes locally if you run it twice and believe.”',
+  '“that test has been red so long it’s basically infrastructure.”',
+  '“the timezone changed. no, not ours. the runner’s.”',
+  '“we didn’t change anything.” (47 files changed)',
+  '“the cache must be poisoned.” (the cache was fine)',
+  '“it only fails on Mondays. statistically that’s the pipeline’s problem.”',
+  '“sleep(5) wasn’t enough, trying sleep(10).”',
+  '“the e2e test is red but the demo worked, so we’re calling it green in spirit.”',
+  '“secrets were masked. mostly.”',
+  '“it’s not flaky, it’s non-deterministically correct.”',
+  '“QA approved it verbally.”'
+];
+let lastEx=-1;
+document.getElementById('genbtn').addEventListener('click',()=>{
+  let i; do{ i=Math.floor(Math.random()*excuses.length); }while(i===lastEx);
+  lastEx=i;
+  document.getElementById('genout').textContent=excuses[i];
+});
+
+/* ---------- footer easter egg ---------- */
+document.getElementById('egg').addEventListener('click',()=>{
+  confetti();
+  const f=document.querySelector('footer p:last-child');
+  if(!document.getElementById('eggline')){
+    const s=document.createElement('div');
+    s.id='eggline';
+    s.textContent='deployed by pipeline, like everything should be. 🚀';
+    f.appendChild(s);
+  }
+});
+})();
+</script>
+</body>
+</html>

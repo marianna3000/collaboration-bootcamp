@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>./onboard.sh — The Consultant's Setup Survival Guide</title>
+<meta name="description" content="IDE, terminal, software engineering habits, Python tooling & ways of working — the field reference for consultants who want a laptop that could die at the airport without killing the engagement.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,600;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1b1f23; --ink-soft:#4b5258;
+  --paper:#ffffff; --paper-dim:#f6f7f8; --rail:#d4d8dc;
+  --accent:#0e7c86;            /* setup-guide teal */
+  --accent-dim:#e7f2f3;        /* 10% tint of accent on white */
+  --green:#2ea043; --green-dim:#e9f7ec;
+  --red:#cf222e;   --red-dim:#fdecee;
+  --blue:#0969da;  --yellow:#d4a017;
+  --code-bg:#16181d; --code-ink:#e8eaed;
+  --code-comment:#7d8590; --code-accent:#ffa657;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+  --serif:'Source Serif 4',Georgia,serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:var(--serif);color:var(--ink);background:var(--paper);line-height:1.65;font-size:1.05rem}
+body.flash{animation:redflash .6s ease-out}
+@keyframes redflash{0%{background:var(--red-dim)}100%{background:var(--paper)}}
+
+.layout{display:grid;grid-template-columns:300px 1fr;max-width:1200px;margin:0 auto;gap:0 2.5rem;padding:0 1.25rem}
+nav.toc{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:1.5rem 0 2rem;font-family:var(--mono);font-size:.78rem}
+main{min-width:0;padding-bottom:6rem}
+.content{max-width:70ch}
+.wide{max-width:48rem}
+
+h1,h2,h3,h4,.chip,nav.toc,button,figcaption,th{font-family:var(--mono)}
+h1{font-size:1.9rem;line-height:1.25;margin:.4rem 0 .6rem}
+h2{font-size:1.3rem;margin:0 0 1rem;line-height:1.35}
+h3{font-size:1.02rem;margin:2rem 0 .6rem;color:var(--ink)}
+h4{font-size:.92rem;margin:1.4rem 0 .4rem}
+p{margin:.85rem 0}
+a{color:var(--accent)}
+a:hover{text-decoration-thickness:2px}
+strong{font-weight:600}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:2px}
+
+/* ---------- sidebar styled as a bootstrap script run ---------- */
+.toc-cmd{color:var(--ink);font-weight:700;margin:0 0 .6rem;padding-bottom:.55rem;border-bottom:1px solid var(--rail)}
+.toc-cmd .dollar{color:var(--accent)}
+nav.toc ol{list-style:none;margin:0;padding:0}
+nav.toc li{margin:0}
+nav.toc a{display:flex;gap:.55rem;align-items:baseline;padding:.34rem .5rem;border-radius:6px;color:var(--ink-soft);text-decoration:none}
+nav.toc a:hover{background:var(--paper-dim);color:var(--ink)}
+nav.toc a.active{background:var(--accent-dim);color:var(--ink)}
+.st{flex:0 0 auto;font-weight:600}
+.st.ok{color:var(--green)} .st.warn{color:var(--yellow)} .st.fail{color:var(--red)} .st.quiz{color:var(--blue)}
+.toc-foot{margin-top:.8rem;padding-top:.6rem;border-top:1px solid var(--rail);color:var(--ink-soft);font-size:.72rem}
+
+/* ---------- section header chips ---------- */
+section{padding-top:3.2rem}
+.chip{display:inline-flex;flex-wrap:wrap;gap:.6rem;align-items:center;font-size:.74rem;color:var(--ink-soft);background:var(--paper-dim);border:1px solid var(--rail);border-radius:999px;padding:.25rem .8rem;margin-bottom:.5rem}
+.chip .step{color:var(--accent);font-weight:700}
+.chip .exit{font-weight:600}
+.chip .exit.ok{color:var(--green)} .chip .exit.warn{color:var(--yellow)} .chip .exit.fail{color:var(--red)}
+
+/* ---------- hero terminal ---------- */
+.hero{padding:2.5rem 0 1rem}
+.term{background:var(--code-bg);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.18);overflow:hidden;max-width:48rem;margin:1.4rem 0}
+.term-bar{display:flex;align-items:center;gap:.45rem;background:#22262d;padding:.55rem .9rem;font-family:var(--mono);font-size:.72rem;color:#9aa2ab}
+.dot{width:11px;height:11px;border-radius:50%}
+.dot.r{background:#ff5f57}.dot.y{background:#febc2e}.dot.g{background:#28c840}
+.term-title{margin-left:.5rem}
+.term-body{display:grid;padding:1rem 1.1rem 1.2rem;font-family:var(--mono);font-size:.86rem;color:var(--code-ink);white-space:pre-wrap}
+.term-layer{grid-area:1/1;min-width:0}
+.term-sizer{visibility:hidden}
+.term-body .ln{display:block;min-height:1.5em}
+.term-body .c-dim{color:var(--code-comment)} .term-body .c-ok{color:#7ee787}
+.term-body .c-warn{color:var(--code-accent)} .term-body .c-err{color:#ff7b72}
+.cursor{display:inline-block;width:.55em;height:1.05em;background:var(--code-ink);vertical-align:-0.15em;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* ---------- code blocks ---------- */
+.codewrap{position:relative;max-width:48rem;margin:1rem 0}
+pre{background:var(--code-bg);color:var(--code-ink);font-family:var(--mono);font-size:.84rem;line-height:1.55;border-radius:8px;padding:1rem 1.1rem;overflow-x:auto;margin:0}
+pre .cm{color:var(--code-comment)} pre .hl{color:var(--code-accent)} pre .ok{color:#7ee787} pre .er{color:#ff7b72}
+.copy{position:absolute;top:.5rem;right:.5rem;font-size:.68rem;font-family:var(--mono);background:#2b313a;color:#cdd3da;border:1px solid #3a414b;border-radius:6px;padding:.25rem .6rem;cursor:pointer}
+.copy:hover{background:#39414d}
+code{font-family:var(--mono);font-size:.86em;background:var(--paper-dim);border:1px solid var(--rail);border-radius:4px;padding:.06em .32em}
+pre code{background:none;border:0;padding:0;font-size:1em}
+
+/* ---------- callouts ---------- */
+.note,.fix,.alarm{border-radius:8px;padding:.85rem 1rem .9rem;margin:1.1rem 0;max-width:48rem;border:1px solid}
+.note{background:var(--accent-dim);border-color:#bcd9dc}
+.fix{background:var(--green-dim);border-color:#bfe6c8}
+.alarm{background:var(--red-dim);border-color:#f3c2c8}
+.note .lbl,.fix .lbl,.alarm .lbl{display:block;font-family:var(--mono);font-size:.72rem;font-weight:700;letter-spacing:.04em;margin-bottom:.3rem}
+.note .lbl{color:var(--accent)} .fix .lbl{color:var(--green)} .alarm .lbl{color:var(--red)}
+.note p,.fix p,.alarm p{margin:.3rem 0}
+
+/* ---------- tables ---------- */
+.tablewrap{overflow-x:auto;max-width:48rem;margin:1rem 0;border:1px solid var(--rail);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th{background:var(--paper-dim);text-align:left;font-size:.74rem;letter-spacing:.02em;padding:.55rem .7rem;border-bottom:2px solid var(--rail);white-space:nowrap}
+td{padding:.55rem .7rem;border-bottom:1px solid var(--rail);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.y{background:var(--green-dim);font-family:var(--mono);font-size:.8rem}
+td.n{background:var(--red-dim);font-family:var(--mono);font-size:.8rem}
+td code{white-space:nowrap}
+
+/* ---------- figures ---------- */
+figure{margin:1.4rem 0;max-width:48rem}
+figure svg{width:100%;height:auto;display:block;background:var(--paper-dim);border:1px solid var(--rail);border-radius:8px}
+figcaption{font-size:.74rem;color:var(--ink-soft);margin-top:.45rem}
+
+/* ---------- wanted posters ---------- */
+.posters{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:1.2rem;margin:1.4rem 0;max-width:52rem}
+.poster{background:#fdfaf3;border:1px solid #e3d9bd;border-radius:6px;padding:1rem 1rem 1.1rem;box-shadow:2px 3px 10px rgba(0,0,0,.08);transition:transform .18s ease;text-align:center}
+.poster:hover{transform:rotate(-1.2deg) scale(1.02)}
+.poster .wanted{font-family:var(--mono);font-size:.66rem;letter-spacing:.25em;color:#8a6d1f}
+.poster .mug{font-size:2.6rem;line-height:1.2;margin:.3rem 0}
+.poster h3{margin:.1rem 0 .5rem;font-size:.95rem}
+.poster .crime{font-size:.88rem;text-align:left;margin:.4rem 0}
+.poster .bounty{background:var(--green-dim);border:1px solid #bfe6c8;border-radius:6px;padding:.5rem .6rem;font-size:.82rem;text-align:left;margin-top:.6rem}
+.poster .bounty b{font-family:var(--mono);font-size:.68rem;color:var(--green);display:block;margin-bottom:.2rem}
+
+/* ---------- versus ---------- */
+.versus{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;max-width:48rem;margin:1.4rem 0}
+.vcard{border:1px solid var(--rail);border-radius:8px;padding:1rem 1.1rem;background:var(--paper-dim)}
+.vcard h3{margin:.1rem 0 .5rem}
+.vcard ul{margin:.4rem 0;padding-left:1.1rem;font-size:.92rem}
+.vcard li{margin:.3rem 0}
+.rule{font-size:1.05rem;border-left:4px solid var(--accent);padding:.6rem 1rem;background:var(--accent-dim);border-radius:0 8px 8px 0;max-width:48rem;margin:1.2rem 0}
+
+/* ---------- SOS recipes ---------- */
+.sos h3{background:var(--paper-dim);border:1px solid var(--rail);border-left:4px solid var(--red);border-radius:6px;padding:.55rem .8rem;font-size:.95rem}
+.sit{font-style:italic;color:var(--ink-soft);margin:.4rem 0 .6rem}
+
+/* ---------- quiz ---------- */
+.q{border:1px solid var(--rail);border-radius:8px;padding:1rem 1.1rem;margin:1.1rem 0;max-width:48rem;background:var(--paper)}
+.q p.qq{font-family:var(--mono);font-size:.92rem;font-weight:600;margin:.1rem 0 .7rem}
+.q label{display:flex;gap:.6rem;align-items:baseline;padding:.4rem .55rem;border-radius:6px;cursor:pointer;font-size:.95rem}
+.q label:hover{background:var(--paper-dim)}
+.q label.right{background:var(--green-dim);outline:1px solid #bfe6c8}
+.q label.wrong{background:var(--red-dim);outline:1px solid #f3c2c8}
+.quiz-actions{display:flex;gap:1rem;align-items:center;margin:1.2rem 0;flex-wrap:wrap}
+.btn{font-family:var(--mono);font-size:.84rem;font-weight:600;background:var(--accent);color:#fff;border:0;border-radius:8px;padding:.6rem 1.2rem;cursor:pointer}
+.btn:hover{filter:brightness(1.08)}
+.btn.ghost{background:var(--paper);color:var(--accent);border:1px solid var(--accent)}
+#quiz-result{font-family:var(--mono);font-size:.95rem;font-weight:600}
+
+/* ---------- generator ---------- */
+.genbox{display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;margin:1.2rem 0;max-width:48rem}
+#gen-out{flex:1 1 18rem;min-height:3.2em;font-family:var(--mono);font-size:.88rem;background:var(--code-bg);color:var(--code-ink);border-radius:8px;padding:.8rem 1rem}
+#gen-out .c-dim{color:var(--code-comment)}
+
+/* ---------- resources ---------- */
+.res{list-style:none;padding:0;max-width:48rem}
+.res li{padding:.55rem 0;border-bottom:1px dashed var(--rail)}
+.res a{font-family:var(--mono);font-size:.88rem;font-weight:600}
+.res span{display:block;font-size:.9rem;color:var(--ink-soft)}
+
+/* ---------- panic button ---------- */
+#panic{position:fixed;right:1.4rem;bottom:1.4rem;z-index:50;font-family:var(--mono);font-weight:700;font-size:.85rem;background:var(--red);color:#fff;border:0;border-radius:999px;padding:.85rem 1.3rem;cursor:pointer;box-shadow:0 8px 22px rgba(207,34,46,.4);animation:pulse 1.8s ease-in-out infinite}
+#panic:hover{animation:shake .35s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+@keyframes shake{0%,100%{transform:rotate(0)}25%{transform:rotate(-3deg)}75%{transform:rotate(3deg)}}
+
+/* ---------- footer ---------- */
+footer{border-top:1px solid var(--rail);margin-top:4rem;padding:1.6rem 0 2.4rem;font-family:var(--mono);font-size:.78rem;color:var(--ink-soft)}
+#exitcode{cursor:pointer;color:var(--accent);font-weight:700}
+#egg-msg{display:none;margin-top:.5rem;color:var(--green)}
+
+/* ---------- reveal ---------- */
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
+.reveal.in{opacity:1;transform:none}
+
+/* ---------- confetti ---------- */
+.cfp{position:fixed;top:-12px;z-index:99;pointer-events:none;border-radius:2px}
+
+/* ---------- responsive ---------- */
+@media (max-width:920px){
+  .layout{display:block;padding:0 1rem}
+  nav.toc{position:static;max-height:none;border-bottom:1px solid var(--rail);margin-bottom:1rem}
+  .versus{grid-template-columns:1fr}
+  .posters{grid-template-columns:1fr 1fr}
+}
+@media (max-width:560px){
+  .posters{grid-template-columns:1fr}
+  body{font-size:1rem}
+  h1{font-size:1.5rem}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .reveal{opacity:1;transform:none;transition:none}
+  #panic{animation:none}
+  #panic:hover{animation:none}
+  .cursor{animation:none}
+  .poster{transition:none}
+  .poster:hover{transform:none}
+  body.flash{animation:none}
+}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- ======================= SIDEBAR ======================= -->
+<nav class="toc" aria-label="Table of contents">
+  <p class="toc-cmd"><span class="dollar">$</span> ./onboard.sh --verbose</p>
+  <ol>
+    <li><a href="#why"><span class="st ok">[ok]</span> 00_why_this_exists</a></li>
+    <li><a href="#loop"><span class="st ok">[ok]</span> 01_the_daily_loop</a></li>
+    <li><a href="#history"><span class="st ok">[ok]</span> 02_what_a_setup_is</a></li>
+    <li><a href="#model"><span class="st ok">[ok]</span> 03_mental_model</a></li>
+    <li><a href="#reference"><span class="st ok">[ok]</span> 04_terminal_python</a></li>
+    <li><a href="#ide"><span class="st ok">[ok]</span> 05_ide_rosetta</a></li>
+    <li><a href="#configs"><span class="st ok">[ok]</span> 06_configs_that_pay_rent</a></li>
+    <li><a href="#wow"><span class="st ok">[ok]</span> 07_ways_of_working</a></li>
+    <li><a href="#containers"><span class="st ok">[ok]</span> 08_containers_local</a></li>
+    <li><a href="#wanted"><span class="st warn">[!!]</span> 09_the_most_wanted</a></li>
+    <li><a href="#debate"><span class="st ok">[ok]</span> 10_notebooks_vs_scripts</a></li>
+    <li><a href="#sos"><span class="st fail">[XX]</span> 11_disaster_recovery</a></li>
+    <li><a href="#quiz"><span class="st quiz">[??]</span> 12_boss_fight</a></li>
+    <li><a href="#resources"><span class="st ok">[ok]</span> 13_required_reading</a></li>
+  </ol>
+  <p class="toc-foot">exit codes: ok=installed · !!=warrants out · XX=read when on fire</p>
+</nav>
+
+<!-- ======================= MAIN ======================= -->
+<main>
+
+<header class="hero">
+  <div class="chip"><span class="step">survival guide series</span><span>·</span><span>consultant edition</span><span>·</span><span class="exit ok">v1.0.0</span></div>
+  <h1>./onboard.sh<br>The Consultant's Setup Survival Guide</h1>
+  <div class="term" aria-label="Terminal animation: a bootstrap script auditing a messy laptop">
+    <div class="term-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-title">zsh — onboard.sh — 80×24</span></div>
+    <div class="term-body">
+      <div class="term-layer term-sizer" aria-hidden="true"><span class="ln">$ ./onboard.sh --client nimbus-freight</span><span class="ln">[1/4] checking python...... found 7 installs, trusted 0</span><span class="ln">[2/4] checking git identity. personal gmail from 2014</span><span class="ln">[3/4] reproducibility test.. "works on my machine" ×3</span><span class="ln">[4/4] verdict............... we need to talk.</span><span class="ln">→ opening survival guide...</span></div>
+      <div class="term-layer" id="hero-term"><span class="ln">$ <span class="cursor"></span></span></div>
+    </div>
+  </div>
+</header>
+
+<!-- ======================= 00 WHY ======================= -->
+<section id="why" class="reveal">
+  <div class="chip"><span class="step">step 00/13</span><span>00_why_this_exists</span><span class="exit ok">exit 0</span></div>
+  <h2>Why this page exists</h2>
+  <div class="content">
+    <p>This page will not make you a better engineer by itself. Nothing you can read in twenty minutes will. What it <em>is</em>: a map of the mistakes consultants make with their own machines and habits, and the shortest known route out of each one — written for the two moments that actually matter: the Sunday before a client kickoff, and the Tuesday when nothing imports.</p>
+    <p>Consulting has a property product teams don't: you change environments constantly. New client, new repo, new VPN, new proxy, new rules. A product engineer can afford a hand-crafted machine that took three years to evolve. You can't — your setup gets stress-tested every few months, usually on a deadline. The thesis of this guide is one sentence: <strong>your development environment is a deliverable. Treat it like one — versioned, documented, reproducible.</strong></p>
+    <p>Scope: getting the most from your IDE, working with your terminal instead of against it, the software engineering basics clients silently judge you on, Python tooling done the current-decade way, the ways-of-working vocabulary — Scrum, TDD, design docs, scope control — that clients assume you already speak, and just enough containers to keep your laptop clean. Spark gets its own dedicated module in this series.</p>
+  </div>
+</section>
+
+<!-- ======================= 01 THE LOOP ======================= -->
+<section id="loop" class="reveal">
+  <div class="chip"><span class="step">step 01/13</span><span>01_the_daily_loop</span><span class="exit ok">exit 0</span></div>
+  <h2>Day zero: the loop you run every day</h2>
+  <div class="content">
+    <p>Strip away the client logos and every productive day is the same eight steps. The whole point of a good setup is that steps 1–4 take minutes, not a day of Slack archaeology.</p>
+  </div>
+  <figure class="wide">
+    <svg viewBox="0 0 760 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The daily development loop: clone, mise install, uv sync, direnv allow, branch, code, test, commit and PR, with a repeat arrow back to branch">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#4b5258"/></marker>
+        <marker id="arrA" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#0e7c86"/></marker>
+      </defs>
+      <g font-family="IBM Plex Mono" font-size="12">
+        <!-- row 1 -->
+        <rect x="20"  y="30" width="150" height="34" rx="17" fill="#e7f2f3" stroke="#0e7c86"/><text x="95"  y="51" text-anchor="middle" fill="#1b1f23">git clone</text>
+        <rect x="210" y="30" width="150" height="34" rx="17" fill="#e7f2f3" stroke="#0e7c86"/><text x="285" y="51" text-anchor="middle" fill="#1b1f23">mise install</text>
+        <rect x="400" y="30" width="150" height="34" rx="17" fill="#e7f2f3" stroke="#0e7c86"/><text x="475" y="51" text-anchor="middle" fill="#1b1f23">uv sync</text>
+        <rect x="590" y="30" width="150" height="34" rx="17" fill="#e7f2f3" stroke="#0e7c86"/><text x="665" y="51" text-anchor="middle" fill="#1b1f23">direnv allow</text>
+        <line x1="170" y1="47" x2="204" y2="47" stroke="#4b5258" marker-end="url(#arr)"/>
+        <line x1="360" y1="47" x2="394" y2="47" stroke="#4b5258" marker-end="url(#arr)"/>
+        <line x1="550" y1="47" x2="584" y2="47" stroke="#4b5258" marker-end="url(#arr)"/>
+        <!-- bend down -->
+        <path d="M 665 64 L 665 96 L 95 96 L 95 122" fill="none" stroke="#4b5258" marker-end="url(#arr)"/>
+        <!-- row 2 -->
+        <rect x="20"  y="128" width="150" height="34" rx="17" fill="#fff" stroke="#0969da"/><text x="95"  y="149" text-anchor="middle" fill="#1b1f23">branch</text>
+        <rect x="210" y="128" width="150" height="34" rx="17" fill="#fff" stroke="#0969da"/><text x="285" y="149" text-anchor="middle" fill="#1b1f23">code + save</text>
+        <rect x="400" y="128" width="150" height="34" rx="17" fill="#fff" stroke="#0969da"/><text x="475" y="149" text-anchor="middle" fill="#1b1f23">pytest -x</text>
+        <rect x="590" y="128" width="150" height="34" rx="17" fill="#e9f7ec" stroke="#2ea043"/><text x="665" y="149" text-anchor="middle" fill="#1b1f23">commit → PR</text>
+        <line x1="170" y1="145" x2="204" y2="145" stroke="#4b5258" marker-end="url(#arr)"/>
+        <line x1="360" y1="145" x2="394" y2="145" stroke="#4b5258" marker-end="url(#arr)"/>
+        <line x1="550" y1="145" x2="584" y2="145" stroke="#4b5258" marker-end="url(#arr)"/>
+        <!-- repeat arrow -->
+        <path d="M 665 162 L 665 190 L 95 190 L 95 168" fill="none" stroke="#0e7c86" stroke-dasharray="5 4" marker-end="url(#arrA)"/>
+        <text x="380" y="184" text-anchor="middle" fill="#0e7c86" font-size="11">repeat until invoice</text>
+      </g>
+    </svg>
+    <figcaption>fig 0 — the daily loop. Top row happens once per repo. Bottom row, forever.</figcaption>
+  </figure>
+  <div class="codewrap"><button class="copy">copy</button><pre><code>$ git clone git@ssh.dev.azure.com:v3/nimbus-freight/logistics/nimbus-pricing &amp;&amp; cd nimbus-pricing
+$ mise install            <span class="cm"># reads .mise.toml → exact python/node, no guessing</span>
+$ uv sync                 <span class="cm"># reads uv.lock → identical deps to everyone else</span>
+$ direnv allow            <span class="cm"># loads project env vars the moment you cd in</span>
+$ git switch -c feat/surcharge-rules
+<span class="cm"># ... edit; ruff fixes on save; tests in the sidebar ...</span>
+$ uv run pytest -x        <span class="cm"># -x: stop at first failure, fix, repeat</span>
+$ git add -p              <span class="cm"># stage hunks, not 'add .' — review yourself first</span>
+$ git commit -m "feat: apply surcharge rules to spot quotes"
+$ git push                <span class="cm"># open PR; small diff, reviewable in one coffee</span></code></pre></div>
+  <div class="note"><span class="lbl">IF YOU ONLY REMEMBER THREE THINGS</span>
+    <p>1. <strong>If it isn't in a file, it doesn't exist.</strong> Tool versions, deps, env vars — declared, committed, reproducible.</p>
+    <p>2. <strong>Pin everything.</strong> "latest" is not a version, it's a countdown.</p>
+    <p>3. <strong>Small commits, small PRs.</strong> Nobody can review 2,000 lines; everybody approves them anyway. That's the problem.</p>
+  </div>
+</section>
+
+<!-- ======================= 02 WHAT IT IS ======================= -->
+<section id="history" class="reveal">
+  <div class="chip"><span class="step">step 02/13</span><span>02_what_a_setup_is</span><span class="exit ok">exit 0</span></div>
+  <h2>What a "setup" actually is</h2>
+  <div class="content">
+    <p>The ideas here are older than the cloud, older than Python, in some cases older than your firm. Unix (1969) established the philosophy this guide leans on: small programs that do one thing well, composed through a universal text interface. The terminal you're avoiding is not legacy — it's the only interface that has survived every platform shift since, precisely because everything composes with everything.</p>
+    <p>The "dotfiles" culture — versioning your <code>~/.zshrc</code>, <code>~/.gitconfig</code> and friends in a git repo — formalized in the 2000s, and the cloud era added the final piece: <em>declarative environments</em>. Terraform did it for infrastructure; <code>Brewfile</code>, <code>.mise.toml</code> and <code>uv.lock</code> do it for your laptop. Same idea, smaller blast radius: describe the desired state in a file, let a tool converge reality to it.</p>
+    <p>A "setup", then, is not the apps you've installed. It's the <strong>set of files from which your working machine can be regenerated</strong>. Everything not covered by those files is improv — and improv is what you were doing at 11pm before your last kickoff.</p>
+    <p>(Yes, the terminal turned 55 and still ships faster than most UIs. It has seniority. Respect it.)</p>
+  </div>
+</section>
+
+<!-- ======================= 03 MENTAL MODEL ======================= -->
+<section id="model" class="reveal">
+  <div class="chip"><span class="step">step 03/13</span><span>03_mental_model</span><span class="exit ok">exit 0</span></div>
+  <h2>Mental model: snowflake vs bootstrap</h2>
+  <div class="content">
+    <p>The naive model says a machine is configured <em>once</em>: install things until it works, then never touch anything because nobody remembers why it works. That machine is a snowflake — unique, beautiful, and it melts the moment it meets a new laptop, a new teammate, or an OS update.</p>
+    <p>The real model treats your machine as <em>derived state</em>. The source of truth is a handful of small files in version control; the laptop is just a cache that can be rebuilt. The difference shows up exactly when you can least afford it: hardware death, client-issued laptop, "can you get Alex productive by Thursday?"</p>
+  </div>
+  <figure class="wide">
+    <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Two models compared: a snowflake machine built from memory, Slack threads and Stack Overflow with no rebuild path, versus a bootstrap model where a dotfiles repo with Brewfile, mise, lockfile and gitconfig regenerates any machine in about 30 minutes">
+      <g font-family="IBM Plex Mono" font-size="12">
+        <!-- left: snowflake -->
+        <rect x="20" y="20" width="345" height="260" rx="10" fill="#fdecee" stroke="#f3c2c8"/>
+        <text x="192" y="48" text-anchor="middle" fill="#cf222e" font-weight="bold" font-size="13">THE SNOWFLAKE ❄️</text>
+        <rect x="50" y="70" width="120" height="30" rx="6" fill="#fff" stroke="#cf222e"/><text x="110" y="89" text-anchor="middle" fill="#1b1f23" font-size="11">memory</text>
+        <rect x="195" y="70" width="140" height="30" rx="6" fill="#fff" stroke="#cf222e"/><text x="265" y="89" text-anchor="middle" fill="#1b1f23" font-size="11">old Slack threads</text>
+        <rect x="50" y="115" width="140" height="30" rx="6" fill="#fff" stroke="#cf222e"/><text x="120" y="134" text-anchor="middle" fill="#1b1f23" font-size="11">Stack Overflow</text>
+        <rect x="215" y="115" width="120" height="30" rx="6" fill="#fff" stroke="#cf222e"/><text x="275" y="134" text-anchor="middle" fill="#1b1f23" font-size="11">sudo + hope</text>
+        <line x1="110" y1="100" x2="175" y2="180" stroke="#cf222e" marker-end="url(#arr)"/>
+        <line x1="265" y1="100" x2="205" y2="180" stroke="#cf222e" marker-end="url(#arr)"/>
+        <line x1="120" y1="145" x2="180" y2="182" stroke="#cf222e" marker-end="url(#arr)"/>
+        <line x1="275" y1="145" x2="202" y2="183" stroke="#cf222e" marker-end="url(#arr)"/>
+        <rect x="115" y="185" width="155" height="34" rx="6" fill="#fff" stroke="#1b1f23"/><text x="192" y="206" text-anchor="middle" fill="#1b1f23" font-size="11">this one laptop</text>
+        <text x="192" y="248" text-anchor="middle" fill="#cf222e" font-size="11">rebuild path: none</text>
+        <text x="192" y="266" text-anchor="middle" fill="#cf222e" font-size="11">rebuild time: a lost week</text>
+        <!-- right: bootstrap -->
+        <rect x="395" y="20" width="345" height="260" rx="10" fill="#e9f7ec" stroke="#bfe6c8"/>
+        <text x="567" y="48" text-anchor="middle" fill="#2ea043" font-weight="bold" font-size="13">THE BOOTSTRAP 📦</text>
+        <rect x="425" y="70" width="285" height="96" rx="6" fill="#fff" stroke="#2ea043"/>
+        <text x="440" y="92"  fill="#1b1f23" font-size="11">dotfiles repo/</text>
+        <text x="455" y="110" fill="#4b5258" font-size="11">Brewfile · .mise.toml</text>
+        <text x="455" y="128" fill="#4b5258" font-size="11">.gitconfig · .zshrc</text>
+        <text x="455" y="146" fill="#4b5258" font-size="11">per-project: uv.lock · .envrc</text>
+        <line x1="567" y1="166" x2="567" y2="182" stroke="#2ea043" marker-end="url(#arr)"/>
+        <rect x="425" y="185" width="285" height="34" rx="6" fill="#fff" stroke="#1b1f23"/><text x="567" y="206" text-anchor="middle" fill="#1b1f23" font-size="11">ANY machine — yours, client's, loaner</text>
+        <text x="567" y="248" text-anchor="middle" fill="#2ea043" font-size="11">rebuild path: git clone + one script</text>
+        <text x="567" y="266" text-anchor="middle" fill="#2ea043" font-size="11">rebuild time: ~30 minutes</text>
+      </g>
+    </svg>
+    <figcaption>fig 1 — the naive model vs the real one. Files are the machine; the laptop is a cache.</figcaption>
+  </figure>
+  <div class="content">
+    <p>One corollary worth internalizing: in the bootstrap model, <strong>fixing something twice is a bug</strong>. The second time you adjust a setting by hand, it goes into the dotfiles repo instead. That single habit compounds more than any tool on this page.</p>
+  </div>
+</section>
+<!-- ======================= 04 CORE REFERENCE ======================= -->
+<section id="reference" class="reveal">
+  <div class="chip"><span class="step">step 04/13</span><span>04_terminal_python</span><span class="exit ok">exit 0</span></div>
+  <h2>Core reference: terminal &amp; Python tooling</h2>
+  <div class="content">
+    <h3>Terminal power tools (install all of these)</h3>
+    <p>Every one of these is in the Brewfile in step 06. Together they cost ~5 minutes to install and repay you daily.</p>
+  </div>
+  <div class="tablewrap wide"><table>
+    <thead><tr><th>Tool</th><th>Replaces</th><th>The one habit to build</th></tr></thead>
+    <tbody>
+      <tr><td><code>fzf</code></td><td>scrolling through history</td><td><kbd>Ctrl-R</kbd> becomes fuzzy search over every command you ever ran</td></tr>
+      <tr><td><code>ripgrep</code> (rg)</td><td><code>grep -r</code></td><td><code>rg "scope_type"</code> — searches the repo, respects .gitignore, instant</td></tr>
+      <tr><td><code>zoxide</code></td><td><code>cd ../../..</code></td><td><code>z pricing</code> jumps to the dir you mean from anywhere</td></tr>
+      <tr><td><code>bat</code></td><td><code>cat</code></td><td>syntax-highlighted file preview with line numbers</td></tr>
+      <tr><td><code>jq</code></td><td>squinting at JSON</td><td><code>curl ... | jq '.items[].id'</code> — slice API responses in the pipe</td></tr>
+      <tr><td><code>az repos</code></td><td>the DevOps web UI, partly</td><td><code>az repos pr create --open</code> — PR from the terminal, opens in browser to finish</td></tr>
+      <tr><td><code>direnv</code></td><td>sourcing env files by hand</td><td>cd into a project → its env vars load; cd out → they unload</td></tr>
+      <tr><td><code>mise</code></td><td>pyenv + nvm + asdf</td><td>one tool pins every runtime version per project, from one file</td></tr>
+      <tr><td><code>uv</code></td><td>pip + venv + pip-tools + pipx</td><td>10–100× faster installs, real lockfile, no activation rituals</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note"><span class="lbl">WINDOWS COLLEAGUES</span><p>Everything on this page works unchanged inside <strong>WSL2</strong> (Ubuntu) with Windows Terminal — that is the supported path, not Git Bash, not PowerShell ports. Install WSL2 first, then proceed as if on Linux. VS Code connects into WSL natively via the Remote extension.</p></div>
+
+  <div class="content">
+    <h3>Beyond the terminal: macOS quality-of-life</h3>
+    <p>Five GUI tools, one habit each — all in the Brewfile, all free or near-free. The bar for this list is daily use; anything you'd open twice a year didn't make it.</p>
+  </div>
+  <div class="tablewrap wide"><table>
+    <thead><tr><th>Tool</th><th>Replaces</th><th>The one habit to build</th></tr></thead>
+    <tbody>
+      <tr><td><code>Raycast</code></td><td>Spotlight</td><td><kbd>⌘Space</kbd> launches apps, does math, converts units, searches clipboard history — the keyboard becomes the OS</td></tr>
+      <tr><td><code>Rectangle</code></td><td>dragging windows like a caveman</td><td><kbd>⌃⌥←/→</kbd> snaps windows to halves — editor left, docs right, in one keystroke</td></tr>
+      <tr><td><code>Maccy</code></td><td>losing what you copied 2 copies ago</td><td>clipboard history on a hotkey; the connection string you copied before the password is still there</td></tr>
+      <tr><td><code>Shottr</code></td><td>raw <kbd>⌘⇧4</kbd> screenshots</td><td>screenshot → arrow + redaction → paste into Slack/docs; consultants ship dozens a week</td></tr>
+      <tr><td><code>AltTab</code></td><td>⌘Tab's app-level blindness</td><td>Windows-style per-window switching — the second VS Code window stops hiding</td></tr>
+    </tbody>
+  </table></div>
+  <div class="content">
+    <p>Two adjacent calls, settled briefly: <strong>terminal app</strong> — any modern one (Ghostty, iTerm2, kitty) beats stock Terminal.app; pick one and learn its split panes and search instead of collecting all three. And <strong>tmux</strong>: superb — <em>on servers</em>. Its real power is sessions that survive your SSH disconnect; on your own laptop, your terminal's native splits cover most of it. Learn tmux the week an engagement has you living on a remote box, not before. (Windows: PowerToys covers most of this table — FancyZones for Rectangle, PowerToys Run for Raycast — and <kbd>Win+V</kbd> clipboard history is built in.)</p>
+  </div>
+
+  <div class="content">
+    <h3>The many faces of "a Python environment"</h3>
+    <p>Five tools all claim to solve the same problem. They are not equal, and the gap widened sharply since 2024 — guidance you'll find in older internal documents (or older blog posts) tends to predate <code>uv</code>.</p>
+  </div>
+  <div class="tablewrap wide"><table>
+    <thead><tr><th></th><th>system python</th><th>pyenv + venv + pip</th><th>conda</th><th>poetry</th><th>uv (+ mise)</th></tr></thead>
+    <tbody>
+      <tr><td>Manages Python itself</td><td class="n">no</td><td class="y">yes</td><td class="y">yes</td><td class="n">no</td><td class="y">yes</td></tr>
+      <tr><td>Real lockfile</td><td class="n">no</td><td class="n">manual</td><td class="n">partial</td><td class="y">yes</td><td class="y">yes</td></tr>
+      <tr><td>Install speed</td><td class="n">—</td><td class="n">slow</td><td class="n">slow</td><td class="n">slow</td><td class="y">fast</td></tr>
+      <tr><td>Breaks your OS if misused</td><td class="n">yes!</td><td class="y">no</td><td class="y">no</td><td class="y">no</td><td class="y">no</td></tr>
+      <tr><td>Verdict for client work</td><td class="n">never</td><td class="n">legacy</td><td class="n">only if client mandates</td><td class="n">fine, slower</td><td class="y">default</td></tr>
+    </tbody>
+  </table></div>
+  <div class="content">
+    <p>The recommendation: <strong><code>mise</code> pins the Python version, <code>uv</code> owns everything inside the project</strong>. You stop typing <code>source .venv/bin/activate</code> entirely — <code>uv run</code> targets the project environment without ceremony. Conda stays in the picture only where a client has standardized on it; don't bring it voluntarily.</p>
+    <h3>A worked session: new project, from zero</h3>
+  </div>
+  <div class="codewrap"><button class="copy">copy</button><pre><code>$ mkdir nimbus-pricing &amp;&amp; cd nimbus-pricing
+$ mise use python@3.12          <span class="cm"># writes .mise.toml, installs 3.12 if missing</span>
+$ uv init --package .           <span class="cm"># pyproject.toml + src/ layout</span>
+$ uv add polars pydantic        <span class="cm"># deps → pyproject + uv.lock, resolved in ms</span>
+$ uv add --dev pytest ruff      <span class="cm"># dev-only deps stay out of prod</span>
+$ uv run pytest                 <span class="cm"># runs inside the env — no activate, ever</span>
+$ uvx ruff check .              <span class="cm"># uvx = run any tool without installing it</span>
+$ git init &amp;&amp; git add . &amp;&amp; git commit -m "feat: scaffold pricing engine"
+<span class="cm"># teammate, tomorrow, any OS:</span>
+$ git clone ... &amp;&amp; cd nimbus-pricing &amp;&amp; mise install &amp;&amp; uv sync   <span class="ok"># identical env. done.</span></code></pre></div>
+
+  <div class="content">
+    <h3>Software engineering basics clients judge you on</h3>
+    <p>None of this is glamorous. All of it is visible in your first week's PRs, and it travels further than any architecture diagram:</p>
+    <ul>
+      <li><strong>Commit messages tell a story.</strong> Use <a href="https://www.conventionalcommits.org/en/v1.0.0/">Conventional Commits</a> (<code>feat:</code>, <code>fix:</code>, <code>chore:</code>): grep-able history, automatable changelogs, and reviewers who can navigate your branch. Everything deeper about git itself — branching, rebasing, recovery — lives in this series' <a href="/collaboration-bootcamp/git-survival-guide/">Git Survival Guide</a>.</li>
+      <li><strong>PRs under ~400 lines.</strong> Review quality falls off a cliff beyond that; split by commit or by stacked PRs.</li>
+      <li><strong>Tests are the spec.</strong> A failing test that reproduces the bug, <em>then</em> the fix. The discipline matters more than the coverage number.</li>
+      <li><strong>Decisions get written down.</strong> A one-page ADR ("we chose X over Y because Z") saves the next consultant — often future-you — a week of reverse engineering.</li>
+      <li><strong>KISS &amp; YAGNI.</strong> Build for the problem at hand. You cannot predict the client's roadmap; their own PM can't either.</li>
+      <li><strong>Least Surprise.</strong> Choose the solution everyone can understand over the clever one. Does it really need a specialized database? If measurements say so, yes; otherwise, no.</li>
+      <li><strong>DRY — with the Rule of Three.</strong> Don't repeat yourself, but don't abstract on the second occurrence either; the wrong abstraction costs more than duplication. Extract on the third.</li>
+      <li><strong>Prefer composition to inheritance, and immutable to mutable.</strong> Both make code easier to reason about, test, and scale. A corollary your on-call self endorses: never operate something you didn't build — if it isn't your code, it should be a managed service.</li>
+      <li><strong>Exit codes and streams are the API of your scripts.</strong> Output to stdout, logs to stderr, exit 0 on success, non-zero on failure — schedulers and CI act on these, and "it failed silently with exit 0" is a genuinely embarrassing incident review.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ======================= 05 IDE ROSETTA ======================= -->
+<section id="ide" class="reveal">
+  <div class="chip"><span class="step">step 05/13</span><span>05_ide_rosetta</span><span class="exit ok">exit 0</span></div>
+  <h2>IDE rosetta stone</h2>
+  <div class="content">
+    <p>The IDE argument is mostly tribal; the leverage isn't in which one, it's in <em>depth</em>. Ten shortcuts used reflexively beat a hundred known vaguely. Both columns below are first-class: VS Code because most mixed teams converge on it, PyCharm because JetBrains ships the strongest Python tooling out of the box — its refactorings and debugger need no extensions to be excellent. The rosetta exists so the two camps can pair without subtitles. (Vim users: you already operate at a higher plane of efficiency. You'd tell us about it, but that would require leaving the editor.)</p>
+  </div>
+  <div class="tablewrap wide"><table>
+    <thead><tr><th>You want to…</th><th>Terminal</th><th>VS Code (mac)</th><th>PyCharm (mac)</th></tr></thead>
+    <tbody>
+      <tr><td>Open file by fuzzy name</td><td><code>fzf</code></td><td><code>⌘P</code></td><td><code>⇧⇧</code></td></tr>
+      <tr><td>Search the whole repo</td><td><code>rg "term"</code></td><td><code>⌘⇧F</code></td><td><code>⌘⇧F</code></td></tr>
+      <tr><td>Run anything by name</td><td>—</td><td><code>⌘⇧P</code> palette</td><td><code>⌘⇧A</code></td></tr>
+      <tr><td>Jump to definition</td><td><code>rg "def name"</code></td><td><code>F12</code> / <code>⌘click</code></td><td><code>⌘B</code></td></tr>
+      <tr><td>Rename symbol everywhere</td><td>(don't sed this)</td><td><code>F2</code></td><td><code>⇧F6</code></td></tr>
+      <tr><td>Multi-cursor next match</td><td>—</td><td><code>⌘D</code></td><td><code>⌃G</code></td></tr>
+      <tr><td>Who wrote this line?</td><td><code>git blame -L 10,20 f.py</code></td><td>GitLens inline</td><td>Annotate gutter</td></tr>
+      <tr><td>Toggle terminal</td><td>you're in it</td><td><code>⌃`</code></td><td><code>⌥F12</code></td></tr>
+    </tbody>
+  </table></div>
+  <div class="content">
+    <p>Beyond shortcuts, three IDE habits with outsized payoff:</p>
+    <ul>
+      <li><strong>Let pre-commit hooks be the law; let your editor be the comfort.</strong> The shared Ruff config runs in pre-commit (step 06) so it behaves identically in VS Code, PyCharm, vim and CI — the editor's format-on-save is just you seeing the verdict earlier. Style debates end either way; diffs shrink to what changed, not what reflowed.</li>
+      <li><strong>The debugger over <code>print()</code>.</strong> One breakpoint with a watch expression replaces twenty print-rerun cycles. Learn conditional breakpoints — they pay for the whole feature.</li>
+      <li><strong>Workspace settings in the repo</strong> (<code>.vscode/settings.json</code>, committed). The team shares one IDE behavior; "but my editor formats it differently" stops being a sentence anyone says.</li>
+    </ul>
+  </div>
+  <div class="alarm"><span class="lbl">BUTTONS THAT BITE</span>
+    <p><strong>"Discard All Changes"</strong> in the VS Code source-control panel doesn't just reset tracked files — it can <em>delete untracked files</em> (it runs a <code>git clean</code> under the hood). Untracked means no git safety net. Read the confirmation dialog like it's a contract, because it is.</p>
+    <p><strong>Settings Sync on a client-issued laptop</strong> happily uploads your workspace config to your personal account — on some engagements that's a data-governance conversation you don't want. Check what's syncing before you sign in.</p>
+  </div>
+  <div class="note"><span class="lbl">COMING UP IN THIS SERIES</span><p>AI-assisted editing (agentic tools, when to trust them, how to review what they write) is its own module — deliberately not squeezed in here.</p></div>
+</section>
+
+<!-- ======================= 06 CONFIGS ======================= -->
+<section id="configs" class="reveal">
+  <div class="chip"><span class="step">step 06/13</span><span>06_configs_that_pay_rent</span><span class="exit ok">exit 0</span></div>
+  <h2>Setup that pays rent: configs worth stealing</h2>
+  <div class="content">
+    <p>Six small files. Together they <em>are</em> the bootstrap from fig 1 — put them in a <code>dotfiles</code> repo today, even an ugly one. Every comment below is load-bearing.</p>
+    <h3>1 · Brewfile — the machine, declared</h3>
+  </div>
+  <div class="codewrap"><button class="copy">copy</button><pre><code><span class="cm"># ~/dotfiles/Brewfile — restore with: brew bundle --file=Brewfile</span>
+brew "git"
+brew "azure-cli"   <span class="cm"># az; the devops extension auto-installs on first `az repos` use.</span>
+                   <span class="cm"># then once: az devops configure --defaults organization=... project=...</span>
+                   <span class="cm"># (GitHub shop instead? swap for: brew "gh")</span>
+brew "mise"        <span class="cm"># runtime versions (python, node, java) per project</span>
+brew "uv"          <span class="cm"># python package + env manager</span>
+brew "direnv"      <span class="cm"># auto-load per-project env vars</span>
+brew "fzf"         <span class="cm"># fuzzy everything (Ctrl-R history search)</span>
+brew "ripgrep"     <span class="cm"># rg: fast repo-wide search</span>
+brew "zoxide"      <span class="cm"># smarter cd</span>
+brew "bat"         <span class="cm"># cat with syntax highlighting</span>
+brew "jq"          <span class="cm"># JSON surgery in pipes</span>
+cask "visual-studio-code"
+cask "ghostty"     <span class="cm"># or iterm2 — any modern terminal beats Terminal.app</span>
+<span class="cm"># macOS quality-of-life (see the table in step 04)</span>
+cask "raycast"
+cask "rectangle"
+cask "maccy"
+cask "shottr"
+cask "alt-tab"
+<span class="cm"># pin to current: run `brew bundle dump` on a healthy machine to capture versions</span></code></pre></div>
+
+  <div class="content"><h3>2 · .zshrc — tool hookups and aliases</h3>
+    <p>Two jobs: wire the power tools into the shell, and encode the commands you type fifty times a day as aliases. One rule of alias hygiene for consultants: <strong>aliases are personal accelerators, never shared vocabulary</strong> — keep them out of docs, scripts and pairing instructions, and stay fluent in the real commands for the day you're typing on a machine that isn't yours.</p>
+  </div>
+  <div class="codewrap"><button class="copy">copy</button><pre><code><span class="cm"># ~/.zshrc — the parts that matter</span>
+eval "$(mise activate zsh)"      <span class="cm"># runtime versions follow you into each project</span>
+eval "$(direnv hook zsh)"        <span class="cm"># project env vars load/unload on cd</span>
+eval "$(zoxide init zsh)"        <span class="cm"># enables `z &lt;fragment&gt;` jumps</span>
+source &lt;(fzf --zsh)              <span class="cm"># NOT preinstalled on macOS — this line turns on</span>
+                                 <span class="cm"># fuzzy Ctrl-R history + Ctrl-T file search</span>
+<span class="cm"># aliases: encode your fifty-times-a-day commands</span>
+alias g="git"
+alias gs="git status -sb"        <span class="cm"># short status + branch info</span>
+alias gl="git log --oneline --graph --all -20"
+alias venv-nuke="rm -rf .venv &amp;&amp; uv sync"   <span class="cm"># the SOS reflex from step 11, one word</span>
+alias cat="bat --paging=never"   <span class="cm"># pretty cat; `command cat` still gets the original</span></code></pre></div>
+  <div class="note"><span class="lbl">WHERE .GITCONFIG WENT</span><p>Your git identity and global config — including the consultant's per-client <code>includeIf</code> identity trick — live in the <a href="/collaboration-bootcamp/git-survival-guide/#setup">Git Survival Guide's setup section</a>, this series' single source of git truth. Clone it into your dotfiles repo from there.</p></div>
+
+  <div class="content"><h3>3 · .mise.toml — committed per project</h3></div>
+  <div class="codewrap"><button class="copy">copy</button><pre><code><span class="cm"># .mise.toml — in the repo root, committed. `mise install` converges to this.</span>
+[tools]
+python = "3.12.8"     <span class="cm"># exact, not "3.12" — pin to current, bump deliberately</span>
+node = "22.13.0"      <span class="cm"># only if the project needs it</span></code></pre></div>
+
+  <div class="content"><h3>4 · pyproject.toml — lint, format, test: one file</h3></div>
+  <div class="codewrap"><button class="copy">copy</button><pre><code><span class="cm"># pyproject.toml (tool sections) — Ruff replaces black + flake8 + isort, in one pass</span>
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]  <span class="cm"># errors, imports, bugbear, modernize, simplify</span>
+
+[tool.pytest.ini_options]
+addopts = "-q --strict-markers"
+testpaths = ["tests"]</code></pre></div>
+
+  <div class="content"><h3>5 · .pre-commit-config.yaml — the law, applied at commit time</h3>
+    <p>This is what makes quality <em>common</em> across the team: the same checks run no matter whose editor, whose OS, whose muscle memory. CI runs <code>pre-commit run --all-files</code> so even a <code>--no-verify</code> cowboy gets caught one stage later.</p>
+  </div>
+  <div class="codewrap"><button class="copy">copy</button><pre><code><span class="cm"># .pre-commit-config.yaml — committed; everyone runs `uvx pre-commit install` once</span>
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.12.0          <span class="cm"># pin to current; ruff-check id exists from v0.12.0+</span>
+    hooks:
+      - id: ruff-check    <span class="cm"># lint (older configs use the legacy id `ruff`)</span>
+        args: [--fix]
+      - id: ruff-format   <span class="cm"># format — replaces black</span>
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.24.0          <span class="cm"># pin to current</span>
+    hooks:
+      - id: gitleaks      <span class="cm"># blocks the career-limiting commit (see step 11)</span>
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-added-large-files</code></pre></div>
+  <div class="content"><h3>6 · .envrc + editor workspace settings</h3>
+    <p>The editor settings below are the optional comfort layer — the hooks above are the contract. PyCharm users: enable the Ruff plugin and "Reformat on save"; same outcome, different menu.</p>
+  </div>
+  <div class="codewrap"><button class="copy">copy</button><pre><code><span class="cm"># .envrc — direnv loads this when you cd in (run `direnv allow` once)</span>
+dotenv_if_exists .env        <span class="cm"># secrets live in .env — which is in .gitignore. Verify that.</span>
+export ENVIRONMENT=dev
+
+<span class="cm"># .vscode/settings.json — committed, so the whole team's editor behaves the same</span>
+{
+  "editor.formatOnSave": true,
+  "[python]": { "editor.defaultFormatter": "charliermarsh.ruff" },
+  "editor.codeActionsOnSave": { "source.organizeImports": "explicit" },
+  "files.trimTrailingWhitespace": true
+}</code></pre></div>
+  <div class="fix"><span class="lbl">THE COMPOUNDING RULE</span><p>Touched a setting twice? It goes in the dotfiles repo. That's the whole system. Bootstrap = <code>git clone dotfiles &amp;&amp; brew bundle &amp;&amp; stow .</code> (or a 10-line install.sh — fancy tooling optional).</p></div>
+</section>
+
+<!-- ======================= 07 WAYS OF WORKING ======================= -->
+<section id="wow" class="reveal">
+  <div class="chip"><span class="step">step 07/13</span><span>07_ways_of_working</span><span class="exit ok">exit 0</span></div>
+  <h2>Ways of working: Agile, Scrum, TDD &amp; writing decisions down</h2>
+  <div class="content">
+    <p>Nobody fails an engagement over a missed keyboard shortcut. People do fail them by sitting in sprint planning without knowing what a sprint is, or by treating "we do Scrum here" as background noise. As a consultant you don't choose the client's process — you walk into one mid-flight. This section is the vocabulary and the moves, compressed.</p>
+    <h3>Agile is the values; Scrum is a framework; Kanban is the other one</h3>
+    <p><strong>Agile</strong> is four sentences from 2001 (<a href="https://agilemanifesto.org/">the Manifesto</a>): individuals over processes, working software over documentation, collaboration over contracts, responding to change over following a plan — each valuing the left <em>more</em>, not the right <em>not at all</em>. <strong>Scrum</strong> is the most common framework implementing it, and the default at most clients — Azure DevOps even ships a Scrum process template. <strong>Kanban</strong> is the flow-based alternative: no sprints, just a board with WIP limits; common for ops-flavored and support-heavy teams. The whole of Scrum fits in one table:</p>
+  </div>
+  <div class="tablewrap wide"><table>
+    <thead><tr><th>3 roles</th><th>3 artefacts</th><th>5 events</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Product Owner</strong> — owns the vision, represents stakeholders, orders the backlog</td><td><strong>Product Backlog</strong> — the prioritized list of everything wanted</td><td><strong>Sprint</strong> — the time-box itself (1–4 weeks)</td></tr>
+      <tr><td><strong>Scrum Master</strong> — facilitates the process, removes obstacles (not a project manager)</td><td><strong>Sprint Backlog</strong> — what the team committed to this sprint</td><td><strong>Planning</strong> — decide what goes in · <strong>Daily Scrum</strong> — sync, &le;15 min</td></tr>
+      <tr><td><strong>Development Team</strong> — self-organizing; does the work</td><td><strong>Increment</strong> — the potentially shippable product at sprint end</td><td><strong>Review</strong> — demo what shipped · <strong>Retrospective</strong> — improve the process</td></tr>
+    </tbody>
+  </table></div>
+  <div class="content">
+    <p>The three principles underneath — transparency, inspection, adaptation — are the actual point; the ceremonies are just scaffolding for them. Consultant survival notes: in the daily, answer <em>yesterday / today / blockers</em> in thirty seconds — it's a synchronization, not a status novel. Treat the retrospective as the highest-leverage meeting of the sprint; it's where you, the outsider, can legitimately improve the client's process. And know the term <strong>Definition of Done</strong> — the team's checklist for "actually finished" (reviewed, tested, deployed via pipeline), because "done" without one means five different things to five people.</p>
+    <p>One more acronym for regulated or hardware-adjacent clients: <strong>CMMI</strong> — a five-level process maturity model (Initial → Managed → Defined → Quantitatively Managed → Optimizing). You'll rarely run it, but when a client says "we're aiming for Level 3", you should know they mean defined, repeatable processes — and expect more ceremony, not less.</p>
+    <h3>TDD: red → green → refactor</h3>
+    <p>Test-Driven Development inverts the order you were probably taught: <strong>write the failing test first</strong>, write just enough code to pass it, then refactor with the test as your safety net — and loop. Test and production code grow simultaneously, which is the trick: coverage stops being homework done after the fact, and the tests pressure your design toward small, simple units (TDD is where <strong>KISS</strong> and <strong>YAGNI</strong> from step 04 stop being posters and start being enforced).</p>
+  </div>
+  <figure class="wide">
+    <svg viewBox="0 0 760 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The TDD cycle: red, write a failing test; green, write just enough code to pass; refactor, clean up with tests as the safety net; repeat">
+      <g font-family="IBM Plex Mono" font-size="12">
+        <rect x="40"  y="50" width="190" height="44" rx="22" fill="#fdecee" stroke="#cf222e"/><text x="135" y="70" text-anchor="middle" fill="#cf222e" font-weight="bold">RED</text><text x="135" y="86" text-anchor="middle" fill="#1b1f23" font-size="10.5">write a failing test</text>
+        <rect x="285" y="50" width="190" height="44" rx="22" fill="#e9f7ec" stroke="#2ea043"/><text x="380" y="70" text-anchor="middle" fill="#2ea043" font-weight="bold">GREEN</text><text x="380" y="86" text-anchor="middle" fill="#1b1f23" font-size="10.5">just enough code to pass</text>
+        <rect x="530" y="50" width="190" height="44" rx="22" fill="#e7f2f3" stroke="#0e7c86"/><text x="625" y="70" text-anchor="middle" fill="#0e7c86" font-weight="bold">REFACTOR</text><text x="625" y="86" text-anchor="middle" fill="#1b1f23" font-size="10.5">clean up, tests as the net</text>
+        <line x1="230" y1="72" x2="279" y2="72" stroke="#4b5258" marker-end="url(#arr)"/>
+        <line x1="475" y1="72" x2="524" y2="72" stroke="#4b5258" marker-end="url(#arr)"/>
+        <path d="M 625 94 L 625 124 L 135 124 L 135 100" fill="none" stroke="#0e7c86" stroke-dasharray="5 4" marker-end="url(#arrA)"/>
+        <text x="380" y="118" text-anchor="middle" fill="#0e7c86" font-size="11">repeat — in minutes, not days</text>
+      </g>
+    </svg>
+    <figcaption>fig 3 — the TDD loop. <code>uv run pytest -x</code> from step 01 is this loop's engine.</figcaption>
+  </figure>
+  <div class="content">
+    <p>Honest framing so you don't oversell it in a steering meeting: TDD is a <em>design discipline</em>, not a coverage quota. A team can hit 95% coverage writing tests last and still have untestable spaghetti; a team doing TDD gets testable design as a side effect. And it pairs naturally with the bug-fix rule from step 04: a failing test that reproduces the bug, <em>then</em> the fix.</p>
+    <h3>Recording decisions: design docs &amp; ADRs</h3>
+    <p>Every system is a pile of trade-offs; the expensive failure mode is a pile of <em>undocumented</em> trade-offs. Two instruments, different altitudes. The <strong>ADR</strong> (one page, per decision — "we chose X over Y because Z") you met in step 04. The <strong>Software Design Document</strong> is the bigger sibling, written before a significant build, and its skeleton is worth memorizing: <em>context &amp; scope</em> (what we're solving and why), <em>goals and non-goals</em> (measurable impact — and the things you're deliberately ignoring, which is the part juniors skip), <em>proposed solution</em> (high level, big picture, no code), <em>alternatives considered</em> (and why discarded), <em>dependencies</em>. Outcome-focused, no pseudocode. As the consultant, you're often the only person in the room paid to write this — do it well and it outlives the engagement.</p>
+    <h3>Scope creep: the disease consultants are paid to catch early</h3>
+    <p>Every project drifts beyond its original scope unless something pushes back — and the pushing back is, frankly, part of what you bill for. The toolkit, compressed: <strong>MoSCoW</strong> the backlog — Must-have, Should-have, Could-have, <em>Won't-have</em> — and write the Won'ts down, because an undocumented Won't is next sprint's Must. <strong>Route every new ask through change control</strong>, however lightweight: "good idea — onto the backlog, we'll weigh it at planning" is a complete sentence that protects the timeline <em>and</em> the relationship. <strong>Think MVP</strong>: a polished core beats a bloated product with half-implemented everything. And when a stakeholder pushes, don't argue — <strong>itemize the trade-off</strong>: "we can add X; which Must-have moves out to pay for it?" Scope creep survives on invisible costs. Your weapon is a visible bill.</p>
+  </div>
+  <div class="note"><span class="lbl">PROCESS GUARDRAILS YOU'LL MEET AT MATURE CLIENTS</span><p>At least two reviewers on every PR; nothing reaches an environment except through the CI/CD pipeline (no laptop deploys, ever); and <a href="https://semver.org/">semantic versioning</a> on anything other teams consume — MAJOR.MINOR.PATCH, where MAJOR means "this will break you". When you find these missing, that's not freedom — it's your first recommendation slide.</p></div>
+</section>
+<!-- ======================= 08 CONTAINERS ======================= -->
+<section id="containers" class="reveal">
+  <div class="chip"><span class="step">step 08/13</span><span>08_containers_local</span><span class="exit ok">exit 0</span></div>
+  <h2>Containers on your machine</h2>
+  <div class="content">
+    <p>This is the laptop half of containers — running them as disposable dependencies and writing one honest Dockerfile. Image hardening, multi-stage builds, registries, scanning, healthchecks, immutable deployments: that's deployment territory and gets its own module in this series. Here, containers earn their place the same way mise and uv did — they make your environment declarative: the database your project needs is a file in the repo, not an installation ritual.</p>
+    <h3>First, the licensing trap</h3>
+  </div>
+  <div class="alarm"><span class="lbl">DOCKER DESKTOP IS NOT FREE AT YOUR CLIENT</span><p>Docker Desktop requires a paid subscription for commercial use in companies above roughly 250 employees or $10M revenue — which describes most clients. Installing it casually on a client-issued laptop is a license violation with your name in the audit log. The engine itself is open source; it's the Desktop app that's licensed. Alternatives that run the same containers: <strong>OrbStack</strong> (macOS, fast, paid for commercial use but cheap), <strong>Colima</strong> (free, CLI-only, macOS/Linux), or whatever the client has standardized on — ask before installing anything.</p></div>
+  <div class="content">
+    <h3>The pattern that earns rent: compose for local dependencies</h3>
+    <p>"I need a Postgres for five minutes" should never end in a native install. A <code>compose.yaml</code> in the repo means every teammate gets identical services, and deleting them leaves no residue:</p>
+  </div>
+  <div class="codewrap"><button class="copy">copy</button><pre><code><span class="cm"># compose.yaml — committed; the project's local dependencies, declared</span>
+services:
+  db:
+    image: postgres:16.4        <span class="cm"># pinned, like everything else on this page</span>
+    environment:
+      POSTGRES_PASSWORD: localdev   <span class="cm"># local-only creds; real ones live in .env</span>
+    ports: ["5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+volumes:
+  pgdata:
+
+<span class="cm"># daily verbs:</span>
+$ docker compose up -d          <span class="cm"># dependencies appear</span>
+$ docker compose down           <span class="cm"># dependencies vanish; data survives in the volume</span>
+$ docker compose down -v        <span class="cm"># ...and the data too. Fresh start.</span></code></pre></div>
+  <div class="content">
+    <h3>One honest Dockerfile for a uv project</h3>
+    <p>The only container-build idea you must internalize at laptop scale is <strong>layer caching</strong>: copy the lockfiles and install dependencies <em>before</em> copying your code, so editing code doesn't reinstall the world.</p>
+  </div>
+  <div class="codewrap"><button class="copy">copy</button><pre><code><span class="cm"># Dockerfile — minimal and correct for a uv project</span>
+FROM python:3.12-slim
+COPY --from=ghcr.io/astral-sh/uv:0.11.20 /uv /uvx /bin/   <span class="cm"># pin the uv tag</span>
+
+WORKDIR /app
+<span class="cm"># deps layer first: changes rarely, caches almost always</span>
+COPY pyproject.toml uv.lock ./
+RUN uv sync --locked --no-install-project --no-dev
+<span class="cm"># code layer second: changes constantly, rebuilds alone</span>
+COPY . .
+RUN uv sync --locked --no-dev
+
+CMD ["uv", "run", "python", "-m", "nimbus_pricing"]
+<span class="cm"># and add .venv to .dockerignore — your local env must never enter the image</span></code></pre></div>
+  <div class="content">
+    <h3>Hygiene, or: the 41 GB you forgot about</h3>
+    <p>Containers accumulate silently. <code>docker system df</code> shows the damage; <code>docker system prune</code> clears stopped containers and dangling images (safe — anything you need gets re-pulled); <code>docker system prune -a --volumes</code> is the full reset — it also deletes named volumes, i.e. your local databases, so read the prompt. Put a quarterly reminder on it; your future SSD says thanks.</p>
+  </div>
+  <div class="note"><span class="lbl">DEPLOYMENT-GRADE CONTAINERS LIVE IN A FUTURE MODULE</span><p>Multi-stage builds, non-root users, image scanning, healthchecks, registries and immutable deployments are deliberately absent here — they're system-scale concerns for the Docker module of this series. The one rule that bridges both worlds: containers log to stdout/stderr, never to files — the streams-as-API rule from step 04, containerized. Windows colleagues: Docker engines run inside WSL2; same rules apply.</p></div>
+</section>
+<!-- ======================= 08 MOST WANTED ======================= -->
+<section id="wanted" class="reveal">
+  <div class="chip"><span class="step">step 09/13</span><span>09_the_most_wanted</span><span class="exit warn">8 at large</span></div>
+  <h2>The Most Wanted</h2>
+  <div class="content"><p>Eight habits with a body count. If you recognize yourself on a poster, the bounty box is the way out — no questions asked.</p></div>
+  <div class="posters">
+    <div class="poster"><div class="wanted">WANTED</div><div class="mug">❄️</div><h3>The Snowflake Machine</h3>
+      <p class="crime"><strong>Crime:</strong> three years of hand-installed tools, zero files describing any of it. Laptop dies → engagement pauses.</p>
+      <div class="bounty"><b>THE FIX</b>Dotfiles repo + Brewfile + .mise.toml. If it's not in a file, it doesn't exist.</div></div>
+    <div class="poster"><div class="wanted">WANTED</div><div class="mug">🌍</div><h3>The Global Pip Installer</h3>
+      <p class="crime"><strong>Crime:</strong> <code>sudo pip install</code> into the system Python. The OS now shares dependencies with a hackathon script from 2023.</p>
+      <div class="bounty"><b>THE FIX</b>Never touch system Python. Every project gets its own env via uv; tools run via uvx.</div></div>
+    <div class="poster"><div class="wanted">WANTED</div><div class="mug">🏷️</div><h3>The Latest Tagger</h3>
+      <p class="crime"><strong>Crime:</strong> unpinned dependencies and <code>image: latest</code>. The build that worked Friday fails Monday; nothing changed except everything.</p>
+      <div class="bounty"><b>THE FIX</b>Exact versions, committed lockfile (uv.lock). "latest" is a countdown, not a version.</div></div>
+    <div class="poster"><div class="wanted">WANTED</div><div class="mug">🤠</div><h3>The Notebook Cowboy</h3>
+      <p class="crime"><strong>Crime:</strong> production logic lives in <code>Untitled_7.ipynb</code>, run top-to-bottom by hand, state held together by cell-execution order.</p>
+      <div class="bounty"><b>THE FIX</b>Explore in notebooks, ship as scripts with tests. See step 10 for the full verdict.</div></div>
+    <div class="poster"><div class="wanted">WANTED</div><div class="mug">🌿</div><h3>The Branch Hoarder</h3>
+      <p class="crime"><strong>Crime:</strong> a feature branch aged like milk for six weeks. The eventual merge is an archaeology project with conflicts.</p>
+      <div class="bounty"><b>THE FIX</b>Small branches, days not weeks. Rebase on main often; rerere (step 06) makes it painless.</div></div>
+    <div class="poster"><div class="wanted">WANTED</div><div class="mug">🎤</div><h3>The Standup Novelist</h3>
+      <p class="crime"><strong>Crime:</strong> turns the 15-minute daily into a 40-minute dramatic reading of their calendar. Chapter three: meetings I attended.</p>
+      <div class="bounty"><b>THE FIX</b>Yesterday / today / blockers, thirty seconds. Details move to the people who need them, after.</div></div>
+    <div class="poster"><div class="wanted">WANTED</div><div class="mug">🔑</div><h3>The Secret Committer</h3>
+      <p class="crime"><strong>Crime:</strong> committed <code>.env</code> with live credentials, then "fixed" it by deleting the file in the next commit. History remembers.</p>
+      <div class="bounty"><b>THE FIX</b>.gitignore before first commit; pre-commit secret scanning; if it happens — SOS recipe 2, rotate first.</div></div>
+    <div class="poster"><div class="wanted">WANTED</div><div class="mug">🗺️</div><h3>The Hardcoded Pather</h3>
+      <p class="crime"><strong>Crime:</strong> <code>/Users/alexm/Desktop/client_data_FINAL.csv</code> in committed code. Works on exactly one machine in the observable universe.</p>
+      <div class="bounty"><b>THE FIX</b>Paths from config or env vars (.envrc), relative to the project root. CI will thank you.</div></div>
+  </div>
+  <div class="genbox">
+    <button class="btn" id="gen-btn" type="button">🎲 audit a random consultant laptop</button>
+    <div id="gen-out"><span class="c-dim"># click to inspect a (fictional, statistically accurate) machine</span></div>
+  </div>
+</section>
+
+<!-- ======================= 09 DEBATE ======================= -->
+<section id="debate" class="reveal">
+  <div class="chip"><span class="step">step 10/13</span><span>10_notebooks_vs_scripts</span><span class="exit ok">settled</span></div>
+  <h2>The eternal debate: notebooks vs scripts</h2>
+  <div class="content"><p>Sixty seconds, settled. Both sides are right — about different phases of the work.</p></div>
+  <div class="versus">
+    <div class="vcard"><h3>📓 Notebooks</h3>
+      <ul>
+        <li>Unbeatable for exploration: see the data, iterate, plot</li>
+        <li>The right medium for analysis you'll <em>show</em></li>
+        <li>But: hidden state, out-of-order execution, unreviewable diffs, untestable</li>
+      </ul></div>
+    <div class="vcard"><h3>📜 Scripts / packages</h3>
+      <ul>
+        <li>Testable, diffable, importable, schedulable</li>
+        <li>CI can run them; reviewers can review them</li>
+        <li>But: slower to iterate when you don't yet know what you're building</li>
+      </ul></div>
+  </div>
+  <figure class="wide">
+    <svg viewBox="0 0 760 130" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Workflow: exploration happens in a notebook producing insight; the insight is then extracted into a tested script which becomes the scheduled pipeline">
+      <g font-family="IBM Plex Mono" font-size="12">
+        <rect x="20" y="45" width="170" height="40" rx="8" fill="#fff" stroke="#0969da"/><text x="105" y="69" text-anchor="middle">notebook: explore</text>
+        <rect x="260" y="45" width="160" height="40" rx="8" fill="#e7f2f3" stroke="#0e7c86"/><text x="340" y="69" text-anchor="middle">insight / approach</text>
+        <rect x="490" y="45" width="250" height="40" rx="8" fill="#e9f7ec" stroke="#2ea043"/><text x="615" y="69" text-anchor="middle">script + tests → pipeline</text>
+        <line x1="190" y1="65" x2="254" y2="65" stroke="#4b5258" marker-end="url(#arr)"/>
+        <line x1="420" y1="65" x2="484" y2="65" stroke="#4b5258" marker-end="url(#arr)"/>
+        <text x="105" y="110" text-anchor="middle" fill="#4b5258" font-size="11">disposable</text>
+        <text x="615" y="110" text-anchor="middle" fill="#2ea043" font-size="11">deliverable</text>
+        <text x="105" y="30" text-anchor="middle" fill="#0969da" font-size="11">finding out</text>
+        <text x="615" y="30" text-anchor="middle" fill="#2ea043" font-size="11">shipping</text>
+      </g>
+    </svg>
+    <figcaption>fig 2 — the handoff that ends the debate. Notebooks find; scripts ship.</figcaption>
+  </figure>
+  <p class="rule"><strong>The one rule: the moment a notebook gets scheduled, it's a script with worse diffs.</strong> Promote it — extract the logic into a tested module, keep the notebook as the lab journal it was born to be.</p>
+</section>
+
+<!-- ======================= 10 SOS ======================= -->
+<section id="sos" class="sos reveal">
+  <div class="chip"><span class="step">step 11/13</span><span>11_disaster_recovery</span><span class="exit fail">exit 1 — read calmly</span></div>
+  <h2>Disaster recovery</h2>
+  <div class="content"><p>You panicked, you clicked the button, here you are. Breathe. Each recipe: the situation, the commands, the caveat.</p></div>
+
+  <h3>"Nothing imports and <code>which python</code> is lying to me!"</h3>
+  <p class="sit">Imports fail, the wrong Python answers, three package managers are fighting over PATH.</p>
+  <div class="codewrap"><button class="copy">copy</button><pre><code>$ which -a python python3        <span class="cm"># see ALL pythons on PATH, in resolution order</span>
+$ mise doctor                    <span class="cm"># is mise activated in this shell? shims healthy?</span>
+$ cd your-project &amp;&amp; mise install <span class="cm"># converge to the project's pinned version</span>
+$ rm -rf .venv &amp;&amp; uv sync        <span class="cm"># rebuild the env from the lockfile — 30 seconds</span>
+$ uv run python -c "import sys; print(sys.executable)"  <span class="cm"># verify it's .venv's python</span></code></pre></div>
+  <p>Caveat: if an old conda init block in your <code>~/.zshrc</code> is hijacking PATH, comment it out — conda's auto-activate is the usual saboteur on consultant machines.</p>
+
+  <h3>"I committed a secret!"</h3>
+  <p class="sit">An API key / connection string is in a commit. Maybe pushed. Maybe ten minutes ago.</p>
+  <div class="codewrap"><button class="copy">copy</button><pre><code><span class="cm"># STEP 0 — rotate the credential. Now. Before any git surgery.</span>
+<span class="cm"># the key is compromised the moment it left your machine; history-cleaning is hygiene, not the fix</span>
+<span class="cm"># full history-surgery procedure (git-filter-repo, coordinating the force-push,</span>
+<span class="cm"># team re-clones): see the Git Survival Guide — link below</span>
+<span class="cm"># then prevent the sequel, which IS a setup concern:</span>
+$ echo ".env" &gt;&gt; .gitignore
+$ uvx pre-commit install      <span class="cm"># the gitleaks hook from step 06 now guards every commit</span></code></pre></div>
+  <div class="alarm"><span class="lbl">GOLDEN RULE</span><p><strong>Rotate first. Deleting the commit does not un-leak the secret.</strong> Forks, clones, CI caches and scrapers may already have it — on public GitHub, leaked keys get exploited in minutes, not days.</p></div>
+
+  <h3>"VS Code's Discard All Changes deleted my untracked files!"</h3>
+  <p class="sit">You wanted a clean tracked state; the editor also removed files git never knew about.</p>
+  <div class="codewrap"><button class="copy">copy</button><pre><code><span class="cm"># untracked = no git safety net. Your hopes, in order:</span>
+<span class="cm"># 1. VS Code Local History: open Timeline view on the file's old location,</span>
+<span class="cm">#    or Command Palette → "Local History: Find Entry to Restore"</span>
+<span class="cm"># 2. Anything once STAGED may survive inside git — dangling-blob recovery</span>
+<span class="cm">#    is git surgery: see the Git Survival Guide, linked below</span>
+<span class="cm"># 3. Editor/OS backups (Time Machine etc.) — your last resort</span></code></pre></div>
+  <p>Caveat: sometimes the honest answer is the file is gone. The durable fix is habitual: commit early and often on a branch — WIP commits are free, squash later.</p>
+
+  <h3>"The client network blocks every install!"</h3>
+  <p class="sit">Corporate proxy with TLS inspection; pip/uv/git all fail with certificate errors.</p>
+  <div class="codewrap"><button class="copy">copy</button><pre><code><span class="cm"># 1. Get the corporate root CA cert from client IT (a .pem/.crt file) — the clean fix</span>
+$ export SSL_CERT_FILE=/path/to/corp-root-ca.pem      <span class="cm"># honored by uv and most tools</span>
+$ export REQUESTS_CA_BUNDLE=/path/to/corp-root-ca.pem <span class="cm"># python requests</span>
+<span class="cm"># 2. Client runs an internal index (on Azure that's an Azure Artifacts feed)? Point at it:</span>
+<span class="cm">#    [[tool.uv.index]] in pyproject.toml with the internal index URL</span>
+<span class="cm"># 3. Truly air-gapped: export the lockfile, fetch wheels outside, carry them in</span>
+$ uv export --format requirements.txt -o requirements.txt
+$ pip download -r requirements.txt -d ./wheels        <span class="cm"># on the machine WITH internet</span>
+$ uv pip install --no-index --find-links ./wheels -r requirements.txt   <span class="cm"># inside</span></code></pre></div>
+  <p>Caveat: resist <code>--insecure</code> / disabling TLS verification. It "works", it lingers in your config forever, and it's exactly the finding a client security review exists to catch.</p>
+
+  <h3>"It works on my machine but not in CI!"</h3>
+  <p class="sit">Green locally, red in the pipeline. The classic.</p>
+  <div class="codewrap"><button class="copy">copy</button><pre><code>$ git status --ignored | head -30   <span class="cm"># is CI missing a file you never committed? (.env, fixtures)</span>
+$ git stash -u &amp;&amp; uv run pytest     <span class="cm"># test what's COMMITTED, not what's lying around</span>
+$ rm -rf .venv &amp;&amp; uv sync --frozen &amp;&amp; uv run pytest  <span class="cm"># exact lockfile env, like CI builds</span>
+$ git stash pop                     <span class="cm"># carry on</span></code></pre></div>
+  <p>Caveat: 90% of "works on my machine" is one of three: an uncommitted file, an env var only your shell has, or a dependency installed outside the lockfile. The recipe above flushes out all three.</p>
+
+  <h3>Know your "nuke it" flavors</h3>
+  <div class="tablewrap wide"><table>
+    <thead><tr><th>Command</th><th>Destroys</th><th>Safe?</th></tr></thead>
+    <tbody>
+      <tr><td><code>uv sync</code></td><td>nothing — converges env to lockfile</td><td class="y">always</td></tr>
+      <tr><td><code>rm -rf .venv &amp;&amp; uv sync</code></td><td>the virtualenv (fully regenerable)</td><td class="y">yes — first reflex for env weirdness</td></tr>
+      <tr><td><code>mise prune</code></td><td>unused runtime versions</td><td class="y">yes</td></tr>
+      <tr><td><code>git clean -fd</code></td><td>ALL untracked files &amp; dirs</td><td class="n">careful — run with -n (dry run) first</td></tr>
+      <tr><td><code>git clean -fdx</code></td><td>untracked AND ignored: .env, .venv, local data, IDE state</td><td class="n">last resort — that -x deletes your secrets file too</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note"><span class="lbl">GIT SURGERY LIVES NEXT DOOR</span><p>This page stops at environment first aid. Reflog rescues, reset/clean flavors in full, rebase disasters, history rewrites — that's the <a href="/collaboration-bootcamp/git-survival-guide/">Git Survival Guide</a>'s territory. Bookmark both; panic at the right one.</p></div>
+  <div class="fix"><span class="lbl">BONUS WEAPON: py-spy</span>
+    <p>A process hangs — local script, stuck pipeline, mystery job — and you have no idea where. <code>py-spy</code> attaches to a <em>running</em> Python process and shows you, without restarting or instrumenting anything:</p>
+    <p><code>uvx py-spy dump --pid 12345</code> — instant stack trace of where it's stuck. <code>uvx py-spy top --pid 12345</code> — live, htop-style view of which functions burn CPU. The single best "why is it hanging" tool in the Python toolbox, and it works in production.</p>
+  </div>
+</section>
+<!-- ======================= 11 QUIZ ======================= -->
+<section id="quiz" class="reveal">
+  <div class="chip"><span class="step">step 12/13</span><span>12_boss_fight</span><span class="exit warn">graded</span></div>
+  <h2>Boss fight</h2>
+  <div class="content"><p>Five questions. Pass and your laptop could die at the airport without killing the engagement.</p></div>
+
+  <div class="q" data-answer="b">
+    <p class="qq">1 · New client laptop arrives Tuesday; you must be productive Wednesday. The professional move:</p>
+    <label><input type="radio" name="q1" value="a"> Reinstall everything from memory — you mostly remember the tools</label>
+    <label><input type="radio" name="q1" value="b"> Clone your dotfiles repo, run <code>brew bundle</code> + bootstrap script, restore in ~30 min</label>
+    <label><input type="radio" name="q1" value="c"> Copy your entire old home directory across and hope the PATHs sort themselves out</label>
+    <label><input type="radio" name="q1" value="d"> Develop exclusively in Notes.app until the engagement ends</label>
+  </div>
+
+  <div class="q" data-answer="c">
+    <p class="qq">2 · Test-Driven Development means:</p>
+    <label><input type="radio" name="q2" value="a"> Writing tests after the code, but with real diligence this time</label>
+    <label><input type="radio" name="q2" value="b"> Hitting the coverage percentage the PM put in the contract</label>
+    <label><input type="radio" name="q2" value="c"> Failing test first → just enough code to pass → refactor → repeat</label>
+    <label><input type="radio" name="q2" value="d"> Test-Driven Despair: pytest red since the previous consultant left</label>
+  </div>
+
+  <div class="q" data-answer="b">
+    <p class="qq">3 · You just pushed a commit containing a live API key. Your FIRST action:</p>
+    <label><input type="radio" name="q3" value="a"> <code>git push --force</code> over it immediately — fastest way to hide it</label>
+    <label><input type="radio" name="q3" value="b"> Rotate the credential, then clean history with git-filter-repo</label>
+    <label><input type="radio" name="q3" value="c"> Add .env to .gitignore — that retroactively protects it, right?</label>
+    <label><input type="radio" name="q3" value="d"> Delete the Slack message where you admitted it</label>
+  </div>
+
+  <div class="q" data-answer="a">
+    <p class="qq">4 · Ruff is:</p>
+    <label><input type="radio" name="q4" value="a"> A linter + formatter that replaces black, flake8 and isort in one fast tool</label>
+    <label><input type="radio" name="q4" value="b"> A new Python web framework, there's one every week</label>
+    <label><input type="radio" name="q4" value="c"> The sound a 2,000-line PR makes when it lands on a reviewer</label>
+    <label><input type="radio" name="q4" value="d"> A dog-themed VS Code skin</label>
+  </div>
+
+  <div class="q" data-answer="c">
+    <p class="qq">5 · <code>git clean -fdx</code> will delete:</p>
+    <label><input type="radio" name="q5" value="a"> Only files git is tracking</label>
+    <label><input type="radio" name="q5" value="b"> Only build artifacts — it reads your mind about what's disposable</label>
+    <label><input type="radio" name="q5" value="c"> Every untracked AND ignored file: .env, .venv, local data — all of it</label>
+    <label><input type="radio" name="q5" value="d"> Your physical desk clutter, via IoT</label>
+  </div>
+
+  <div class="quiz-actions">
+    <button class="btn" id="grade-btn" type="button">./grade.sh</button>
+    <button class="btn ghost" id="reset-btn" type="button">retry</button>
+    <span id="quiz-result" role="status" aria-live="polite"></span>
+  </div>
+</section>
+
+<!-- ======================= 12 RESOURCES ======================= -->
+<section id="resources" class="reveal">
+  <div class="chip"><span class="step">step 13/13</span><span>13_required_reading</span><span class="exit ok">exit 0</span></div>
+  <h2>Required reading (and playing)</h2>
+  <ul class="res">
+    <li><a href="/collaboration-bootcamp/git-survival-guide/">The Git Survival Guide</a><span>This series' git module — everything git lives there: setup, recovery, resources, and its own games.</span></li>
+    <li><a href="https://cmdchallenge.com/">Command Challenge</a><span>Solve puzzles by typing shell one-liners. The terminal section of this guide, gamified.</span></li>
+    <li><a href="https://missing.csail.mit.edu/">The Missing Semester of Your CS Education (MIT)</a><span>The single best free course on exactly this guide's topics — shell, editors, git, debugging. Required.</span></li>
+    <li><a href="https://en.wikipedia.org/wiki/The_Pragmatic_Programmer">The Pragmatic Programmer — Hunt &amp; Thomas</a><span>The book behind half the habits here (DRY, tracer bullets, "don't live with broken windows").</span></li>
+    <li><a href="https://docs.astral.sh/uv/">uv documentation</a><span>Read "Working on projects" — 15 minutes to unlearn a decade of pip/venv ritual.</span></li>
+    <li><a href="https://docs.astral.sh/uv/guides/integration/docker/">uv in Docker (official guide)</a><span>The canonical Dockerfile patterns — where the step 08 example comes from, plus the cache-mount upgrades.</span></li>
+    <li><a href="https://docs.astral.sh/ruff/">Ruff documentation</a><span>The rules list doubles as a free Python anti-pattern catalog. Browse the B (bugbear) section.</span></li>
+    <li><a href="https://mise.jdx.dev/">mise documentation</a><span>One tool to pin every runtime. The "getting started" page is all you need.</span></li>
+    <li><a href="https://direnv.net/">direnv</a><span>Per-project env vars that load on cd. Five-minute setup, permanent quality-of-life gain.</span></li>
+    <li><a href="https://12factor.net/">The Twelve-Factor App</a><span>Config in the environment, logs as streams, dev/prod parity — the cloud-era basics, still current.</span></li>
+    <li><a href="https://scrumguides.org/">The Scrum Guide</a><span>The official definition — 13 pages. Reading it once puts you ahead of half the people running the ceremonies.</span></li>
+    <li><a href="https://agilemanifesto.org/">The Agile Manifesto</a><span>Four values, twelve principles, two minutes. The thing every process in your career claims descent from.</span></li>
+    <li><a href="https://martinfowler.com/bliki/TestDrivenDevelopment.html">Martin Fowler — Test-Driven Development</a><span>The canonical short explanation of the red-green-refactor loop and why it's about design.</span></li>
+  </ul>
+</section>
+
+<footer>
+  <p>survival guide series · consultant edition · built by hand, reproducible by script</p>
+  <p>see also: the <a href="/collaboration-bootcamp/git-survival-guide/"><strong>Git Survival Guide</strong></a> (<code>git log --survival-guide</code>) — same series, different panic.</p>
+  <p>this page exited with code <span id="exitcode" role="button" tabindex="0" aria-label="Easter egg">0</span></p>
+  <p id="egg-msg">✓ deployed from a laptop that could be replaced in 30 minutes. that's the whole religion.</p>
+</footer>
+
+</main>
+</div>
+
+<button id="panic" type="button" aria-label="Panic: jump to disaster recovery">😱 ENV BROKEN</button>
+
+<script>
+(function(){
+"use strict";
+var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- hero typing ---------- */
+var heroLines = [
+  {t:"$ ./onboard.sh --client nimbus-freight", c:""},
+  {t:"[1/4] checking python...... found 7 installs, trusted 0", c:"c-warn"},
+  {t:"[2/4] checking git identity. personal gmail from 2014", c:"c-warn"},
+  {t:"[3/4] reproducibility test.. \"works on my machine\" \u00d73", c:"c-err"},
+  {t:"[4/4] verdict............... we need to talk.", c:"c-err"},
+  {t:"\u2192 opening survival guide...", c:"c-ok"}
+];
+var term = document.getElementById('hero-term');
+function renderStatic(){
+  term.innerHTML = heroLines.map(function(l){
+    return '<span class="ln '+l.c+'">'+l.t.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</span>';
+  }).join('');
+}
+if (reduced){ renderStatic(); }
+else {
+  var li=0, ch=0, out=[];
+  function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+  function tick(){
+    if (li >= heroLines.length){
+      setTimeout(function(){ li=0; ch=0; out=[]; tick(); }, 6000);
+      return;
+    }
+    var line = heroLines[li];
+    ch++;
+    var done = out.map(function(l){return '<span class="ln '+l.c+'">'+esc(l.t)+'</span>';}).join('');
+    term.innerHTML = done + '<span class="ln '+line.c+'">'+esc(line.t.slice(0,ch))+'<span class="cursor"></span></span>';
+    if (ch >= line.t.length){
+      out.push(line); li++; ch=0;
+      setTimeout(tick, li===1 ? 500 : 650);
+    } else {
+      setTimeout(tick, line.t.charAt(0)==='$' ? 38 : 14);
+    }
+  }
+  tick();
+}
+
+/* ---------- copy buttons ---------- */
+document.querySelectorAll('.codewrap').forEach(function(w){
+  var btn = w.querySelector('.copy'), pre = w.querySelector('pre');
+  if(!btn || !pre) return;
+  btn.addEventListener('click', function(){
+    navigator.clipboard.writeText(pre.innerText).then(function(){
+      btn.textContent = 'copied!';
+      setTimeout(function(){ btn.textContent = 'copy'; }, 1600);
+    }).catch(function(){ btn.textContent = 'select & copy'; });
+  });
+});
+
+/* ---------- scroll reveal ---------- */
+if (!reduced && 'IntersectionObserver' in window){
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, {threshold: 0.08});
+  document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+} else {
+  document.querySelectorAll('.reveal').forEach(function(el){ el.classList.add('in'); });
+}
+
+/* ---------- active TOC ---------- */
+var tocLinks = Array.prototype.slice.call(document.querySelectorAll('nav.toc a'));
+var sections = tocLinks.map(function(a){ return document.querySelector(a.getAttribute('href')); });
+if ('IntersectionObserver' in window){
+  var tocIO = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (e.isIntersecting){
+        tocLinks.forEach(function(a){ a.classList.toggle('active', a.getAttribute('href') === '#'+e.target.id); });
+      }
+    });
+  }, {rootMargin:'-30% 0px -60% 0px'});
+  sections.forEach(function(s){ if(s) tocIO.observe(s); });
+}
+
+/* ---------- confetti ---------- */
+function confetti(){
+  if (reduced) return;
+  var colors = ['#0e7c86','#2ea043','#d4a017','#0969da','#cf222e','#ffa657'];
+  for (var i=0;i<90;i++){
+    var p = document.createElement('div');
+    p.className = 'cfp';
+    var size = 6+Math.random()*7;
+    p.style.cssText = 'left:'+(Math.random()*100)+'vw;width:'+size+'px;height:'+(size*0.6)+'px;background:'+colors[i%colors.length]+';transform:rotate('+(Math.random()*360)+'deg);';
+    document.body.appendChild(p);
+    var fall = 2200+Math.random()*1800, drift = (Math.random()-0.5)*180;
+    p.animate([
+      {transform:'translate(0,0) rotate(0deg)', opacity:1},
+      {transform:'translate('+drift+'px, 105vh) rotate('+(360+Math.random()*720)+'deg)', opacity:0.9}
+    ], {duration: fall, easing:'cubic-bezier(.2,.6,.4,1)'});
+    (function(el, d){ setTimeout(function(){ el.remove(); }, d); })(p, fall);
+  }
+}
+
+/* ---------- panic button ---------- */
+document.getElementById('panic').addEventListener('click', function(){
+  document.body.classList.remove('flash');
+  void document.body.offsetWidth;
+  document.body.classList.add('flash');
+  document.getElementById('sos').scrollIntoView({behavior: reduced ? 'auto' : 'smooth'});
+});
+
+/* ---------- generator ---------- */
+var findings = [
+  "4 Anacondas installed. 0 lockfiles found.",
+  "PATH is 14 lines long and load-bearing.",
+  "~/.zshrc last modified 2019. Author unknown. Do not disturb.",
+  "node installed via: unclear. node --version: also unclear.",
+  "client_data_FINAL_v2.csv located on Desktop. It is the pipeline.",
+  "git user.email: xX_darkcoder_Xx@hotmail.com (47 client commits)",
+  ".venv committed to the repo. 312 MB. Reviewer approved it.",
+  "Docker Desktop: 96 stopped containers, 41 GB. 'I'll clean it Friday.'",
+  "JAVA_HOME points to a deleted folder. Everything works anyway. Nobody asks why.",
+  "secrets.txt is in .gitignore. The .gitignore is not committed.",
+  "shell history: sudo pip install \u00d773. System Python files for divorce.",
+  "branches: fix, fix2, fixfix, fix-final, final-fix-REAL",
+  "TODO.md, last line, dated 14 months ago: 'automate this setup'",
+  "~/Downloads is the deployment pipeline. ~/Downloads (1) is staging.",
+  "Slack DMs serve as the artifact registry. Search is the package index."
+];
+var genBtn = document.getElementById('gen-btn'), genOut = document.getElementById('gen-out'), lastIdx = -1;
+genBtn.addEventListener('click', function(){
+  var i; do { i = Math.floor(Math.random()*findings.length); } while (i === lastIdx);
+  lastIdx = i;
+  genOut.innerHTML = '<span class="c-dim">$ audit --random</span>\n' + findings[i].replace(/&/g,'&amp;').replace(/</g,'&lt;');
+});
+
+/* ---------- quiz ---------- */
+var ranks = [
+  {min:0, label:"\u2620\ufe0f Snowflake Machine Operator \u2014 nothing on your laptop can be explained, including to forensics."},
+  {min:2, label:"\ud83d\udd27 Apprentice of the Dotfiles \u2014 dangerous, but trending reproducible."},
+  {min:4, label:"\ud83d\udcbc Senior Consultant, Reproducible \u2014 your env rebuilds faster than the standup."},
+  {min:5, label:"\ud83e\uddd9 The Bootstrapped One \u2014 your laptop could die at the airport and you'd bill by lunch."}
+];
+document.getElementById('grade-btn').addEventListener('click', function(){
+  var qs = document.querySelectorAll('.q'), score = 0;
+  qs.forEach(function(q){
+    var ans = q.getAttribute('data-answer');
+    q.querySelectorAll('label').forEach(function(lab){
+      lab.classList.remove('right','wrong');
+      var inp = lab.querySelector('input');
+      if (inp.value === ans) lab.classList.add('right');
+      if (inp.checked){
+        if (inp.value === ans) score++;
+        else lab.classList.add('wrong');
+      }
+    });
+  });
+  var rank = ranks[0];
+  ranks.forEach(function(r){ if (score >= r.min) rank = r; });
+  document.getElementById('quiz-result').textContent = score + "/5 \u00b7 " + rank.label;
+  if (score === 5) confetti();
+});
+document.getElementById('reset-btn').addEventListener('click', function(){
+  document.querySelectorAll('.q input').forEach(function(i){ i.checked = false; });
+  document.querySelectorAll('.q label').forEach(function(l){ l.classList.remove('right','wrong'); });
+  document.getElementById('quiz-result').textContent = '';
+});
+
+/* ---------- footer easter egg ---------- */
+function egg(){
+  document.getElementById('egg-msg').style.display = 'block';
+  confetti();
+}
+var exitEl = document.getElementById('exitcode');
+exitEl.addEventListener('click', egg);
+exitEl.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); egg(); } });
+})();
+</script>
+</body>
+</html>
