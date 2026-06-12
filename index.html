@@ -111,42 +111,9 @@ footer{border-top:1px solid var(--rail);margin-top:2.6rem;padding-top:1.4rem;fon
 <h1>Collaboration Bootcamp</h1>
 <p class="subtitle">aka <span style="font-family:var(--mono);font-style:normal">./survive --list</span> — the survival guide series. One front door, four flavors of panic. Pick yours.</p>
 
-<section class="reveal" id="modules">
-  <h2>the modules</h2>
-  <div class="cards">
-    <div class="card shipped c-setup">
-      <h3>./onboard.sh <span class="badge live">● live</span></h3>
-      <p class="desc">The Consultant's Setup Survival Guide — terminal, Python tooling, IDE, containers on your machine, and a laptop you could replace in 30 minutes.</p>
-      <p class="pan">For when: it's day one and nothing is installed, or day 400 and nothing works.</p>
-      <div class="links"><a href="/collaboration-bootcamp/consultant-setup-survival-guide/">read →</a><a class="sos" href="/collaboration-bootcamp/consultant-setup-survival-guide/#sos">😱 env broken</a></div>
-    </div>
-    <div class="card shipped c-git">
-      <h3>git log --survival-guide <span class="badge live">● live</span></h3>
-      <p class="desc">The Git Survival Guide — how git thinks, the 12 commands that matter, merge vs rebase settled, and disaster recovery for every flavor of oh-no.</p>
-      <p class="pan">For when: the branch is a crime scene and the PR is due.</p>
-      <div class="links"><a href="/collaboration-bootcamp/git-survival-guide/">read →</a><a class="sos" href="/collaboration-bootcamp/git-survival-guide/#sos">😱 git mess</a></div>
-    </div>
-    <div class="card shipped c-pipe">
-      <h3>pipeline-survival-guide <span class="badge live">● live</span></h3>
-      <p class="desc">The Pipeline Survival Guide — Python testing, typing, logging, and CI/CD anatomy, vendor-neutral. Releases so boring they're praise.</p>
-      <p class="pan">For when: the pipeline is red and the release is today.</p>
-      <div class="links"><a href="/collaboration-bootcamp/pipeline-survival-guide/">read →</a><a class="sos" href="/collaboration-bootcamp/pipeline-survival-guide/#s10">🔴 pipeline red</a></div>
-    </div>
-    <div class="card c-spark">
-      <h3>spark-survival-guide <span class="badge queue">⏳ in the queue</span></h3>
-      <p class="desc">The Spark Survival Guide — PySpark for people who get paged. Lazy DAGs, shuffles, skew, and why collect() was a mistake.</p>
-      <p class="pan">For when: the driver has left the chat.</p>
-    </div>
-    <div class="card c-docker">
-      <h3>docker-and-cloud <span class="badge planned">◌ planned</span></h3>
-      <p class="desc">Containers, images, and deployment infrastructure — where the pipeline guide's deploy stage actually lands.</p>
-      <p class="pan">For when: it works in the container. The container won't start.</p>
-    </div>
-  </div>
-</section>
-
 <section class="reveal" id="tracks">
-  <h2>day one at the keyboard? read in this order</h2>
+  <h2>what this is, and where to start</h2>
+  <p>A welcome package for new joiners and a mid-panic reference for everyone else. Each module is one self-contained page covering a survival skill of the trade — your machine, your git history, your pipeline. New here? Read them in this order:</p>
   <div class="track">
     <a href="/collaboration-bootcamp/consultant-setup-survival-guide/">01 setup</a><span class="arr">→</span>
     <a href="/collaboration-bootcamp/git-survival-guide/">02 git</a><span class="arr">→</span>
@@ -154,6 +121,35 @@ footer{border-top:1px solid var(--rail);margin-top:2.6rem;padding-top:1.4rem;fon
     <span class="stop dis">04 spark (soon)</span>
   </div>
   <p>Each one stands alone — but they link forward: the setup guide's inner loop becomes the pipeline guide's outer loop, and the pipeline guide's testing chapter is what the Spark guide will assume you know.</p>
+</section>
+
+<section class="reveal" id="modules">
+  <h2>the modules</h2>
+  <div class="cards">
+    <div class="card shipped c-setup">
+      <h3><span class="ord" style="font-family:var(--mono);opacity:.55;font-weight:400">01</span> ./onboard.sh <span class="badge live">● live</span></h3>
+      <p class="desc">The Consultant's Setup Survival Guide — terminal, Python tooling, IDE, containers on your machine, and a laptop you could replace in 30 minutes.</p>
+      <p class="pan">For when: it's day one and nothing is installed, or day 400 and nothing works.</p>
+      <div class="links"><a href="/collaboration-bootcamp/consultant-setup-survival-guide/">read →</a><a class="sos" href="/collaboration-bootcamp/consultant-setup-survival-guide/#sos">😱 env broken</a></div>
+    </div>
+    <div class="card shipped c-git">
+      <h3><span class="ord" style="font-family:var(--mono);opacity:.55;font-weight:400">02</span> git log --survival-guide <span class="badge live">● live</span></h3>
+      <p class="desc">The Git Survival Guide — how git thinks, the 12 commands that matter, merge vs rebase settled, and disaster recovery for every flavor of oh-no.</p>
+      <p class="pan">For when: the branch is a crime scene and the PR is due.</p>
+      <div class="links"><a href="/collaboration-bootcamp/git-survival-guide/">read →</a><a class="sos" href="/collaboration-bootcamp/git-survival-guide/#sos">😱 git mess</a></div>
+    </div>
+    <div class="card shipped c-pipe">
+      <h3><span class="ord" style="font-family:var(--mono);opacity:.55;font-weight:400">03</span> pipeline-survival-guide <span class="badge live">● live</span></h3>
+      <p class="desc">The Pipeline Survival Guide — Python testing, typing, logging, and CI/CD anatomy, vendor-neutral. Releases so boring they're praise.</p>
+      <p class="pan">For when: the pipeline is red and the release is today.</p>
+      <div class="links"><a href="/collaboration-bootcamp/pipeline-survival-guide/">read →</a><a class="sos" href="/collaboration-bootcamp/pipeline-survival-guide/#s10">🔴 pipeline red</a></div>
+    </div>
+    <div class="card c-spark">
+      <h3><span class="ord" style="font-family:var(--mono);opacity:.55;font-weight:400">04</span> spark-survival-guide <span class="badge queue">⏳ in the queue</span></h3>
+      <p class="desc">The Spark Survival Guide — PySpark for people who get paged. Lazy DAGs, shuffles, skew, and why collect() was a mistake.</p>
+      <p class="pan">For when: the driver has left the chat.</p>
+    </div>
+  </div>
 </section>
 
 <section class="reveal" id="onfire">
