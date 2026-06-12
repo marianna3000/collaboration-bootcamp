@@ -16,7 +16,7 @@
   --red:#cf222e; --red-dim:#fdecee;
   --yellow:#d4a017;
   --code-bg:#16181d; --code-ink:#e8eaed; --code-comment:#7d8590;
-  --c-setup:#0e7c86; --c-git:#f05133; --c-pipe:#1f6feb; --c-spark:#e25a1c; --c-docker:#2496ed;
+  --c-setup:#0e7c86; --c-git:#f05133; --c-pipe:#1f6feb; --c-spark:#e25a1c;
   --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
   --serif:'Source Serif 4',Georgia,serif;
 }
@@ -66,9 +66,12 @@ p{margin:0 0 .9rem;max-width:70ch}
 .badge.live{background:var(--green-dim);color:var(--green);border:1px solid var(--green)}
 .badge.queue{background:#fff8e6;color:#946f00;border:1px solid var(--yellow)}
 .badge.planned{background:var(--paper-dim);color:var(--ink-soft);border:1px solid var(--rail)}
+.badge.surv{background:var(--green-dim);color:var(--green);border:1px dashed var(--green)}
+.roulette{font-family:var(--mono);font-size:.8rem;border:1px solid var(--red);color:var(--red);
+  background:var(--paper);border-radius:6px;padding:.45rem .9rem;cursor:pointer;margin:.2rem 0 1rem}
+.roulette:hover{background:var(--red-dim)}
 .c-setup{border-left-color:var(--c-setup)} .c-git{border-left-color:var(--c-git)}
 .c-pipe{border-left-color:var(--c-pipe)} .c-spark{border-left-color:var(--c-spark)}
-.c-docker{border-left-color:var(--c-docker)}
 
 /* track */
 .track{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;font-family:var(--mono);font-size:.8rem;margin:0 0 1rem}
@@ -126,19 +129,19 @@ footer{border-top:1px solid var(--rail);margin-top:2.6rem;padding-top:1.4rem;fon
 <section class="reveal" id="modules">
   <h2>the modules</h2>
   <div class="cards">
-    <div class="card shipped c-setup">
+    <div class="card shipped c-setup" data-mod="setup">
       <h3><span class="ord" style="font-family:var(--mono);opacity:.55;font-weight:400">01</span> ./onboard.sh <span class="badge live">● live</span></h3>
       <p class="desc">The Consultant's Setup Survival Guide — terminal, Python tooling, IDE, containers on your machine, and a laptop you could replace in 30 minutes.</p>
       <p class="pan">For when: it's day one and nothing is installed, or day 400 and nothing works.</p>
       <div class="links"><a href="/collaboration-bootcamp/consultant-setup-survival-guide/">read →</a><a class="sos" href="/collaboration-bootcamp/consultant-setup-survival-guide/#sos">😱 env broken</a></div>
     </div>
-    <div class="card shipped c-git">
+    <div class="card shipped c-git" data-mod="git">
       <h3><span class="ord" style="font-family:var(--mono);opacity:.55;font-weight:400">02</span> git log --survival-guide <span class="badge live">● live</span></h3>
       <p class="desc">The Git Survival Guide — how git thinks, the 12 commands that matter, merge vs rebase settled, and disaster recovery for every flavor of oh-no.</p>
       <p class="pan">For when: the branch is a crime scene and the PR is due.</p>
       <div class="links"><a href="/collaboration-bootcamp/git-survival-guide/">read →</a><a class="sos" href="/collaboration-bootcamp/git-survival-guide/#sos">😱 git mess</a></div>
     </div>
-    <div class="card shipped c-pipe">
+    <div class="card shipped c-pipe" data-mod="pipeline">
       <h3><span class="ord" style="font-family:var(--mono);opacity:.55;font-weight:400">03</span> pipeline-survival-guide <span class="badge live">● live</span></h3>
       <p class="desc">The Pipeline Survival Guide — Python testing, typing, logging, and CI/CD anatomy, vendor-neutral. Releases so boring they're praise.</p>
       <p class="pan">For when: the pipeline is red and the release is today.</p>
@@ -160,6 +163,7 @@ footer{border-top:1px solid var(--rail);margin-top:2.6rem;padding-top:1.4rem;fon
     <a class="routerow" href="/collaboration-bootcamp/pipeline-survival-guide/#s10"><span class="sym">"The pipeline is red, the test is flaky, the release is today."</span><span class="dest">🔴 pipeline SOS →</span></a>
     <div class="routerow dis"><span class="sym">"The Spark job OOMed at 3am."</span><span class="dest">🔥 soon</span></div>
   </div>
+  <button class="roulette" id="roulette" type="button">🎲 can't decide? panic roulette →</button>
 </section>
 
 <section class="reveal" id="conventions">
@@ -184,7 +188,7 @@ const lines = [
   {t:'git        git log --survival-guide     [live]   😱 PANIC', cls:'ok'},
   {t:'pipeline   pipeline-survival-guide      [live]   🔴 PIPELINE RED', cls:'ok'},
   {t:'spark      spark-survival-guide         [queue]  🔥 DRIVER OOM', cls:'warn'},
-  {t:'4 modules live or queued · 1 planned · 0 panics unhandled · pick yours below', cls:'dim'}
+  {t:'3 modules live · 1 in the queue · 0 panics unhandled · pick yours below', cls:'dim'}
 ];
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 const body=document.getElementById('termBody');
@@ -244,6 +248,67 @@ function eggGo(){
 }
 egg.addEventListener('click',eggGo);
 egg.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();eggGo();}});
+
+/* survival progress — guides mark themselves visited via localStorage */
+let surv={};
+try{surv=JSON.parse(localStorage.getItem('cb-survived')||'{}');}catch(e){}
+let nSurv=0;
+['setup','git','pipeline'].forEach(m=>{
+  if(surv[m]){
+    nSurv++;
+    const h=document.querySelector('.card[data-mod="'+m+'"] h3');
+    if(h && !h.querySelector('.surv')){
+      const b=document.createElement('span'); b.className='badge surv'; b.textContent='✓ survived';
+      h.appendChild(b);
+    }
+  }
+});
+egg.textContent=nSurv+'/3 panics survived, 0 careers lost';
+
+/* panic roulette */
+const sosUrls=[
+  '/collaboration-bootcamp/consultant-setup-survival-guide/#sos',
+  '/collaboration-bootcamp/git-survival-guide/#sos',
+  '/collaboration-bootcamp/pipeline-survival-guide/#s10'
+];
+const rl=document.getElementById('roulette');
+if(rl){
+  rl.addEventListener('click',()=>{
+    const dest=sosUrls[Math.floor(Math.random()*sosUrls.length)];
+    if(reduced){ location.href=dest; return; }
+    const faces=['😱','🔴','🧯','🎲'];
+    let i=0;
+    const iv=setInterval(()=>{ rl.textContent=faces[i++%faces.length]+' spinning…'; },90);
+    setTimeout(()=>{ clearInterval(iv); location.href=dest; },800);
+  });
+}
+
+/* easter egg: type "panic" anywhere */
+let kbuf='';
+document.addEventListener('keydown',e=>{
+  if(e.key && e.key.length===1){
+    kbuf=(kbuf+e.key.toLowerCase()).slice(-5);
+    if(kbuf==='panic'){ kbuf=''; panicRain(); }
+  }
+});
+function panicRain(){
+  if(!document.getElementById('panicline')){
+    const s=document.createElement('div'); s.id='panicline';
+    s.textContent="we saw that. breathe — then pick a module; that's literally what they're for.";
+    document.querySelector('footer').appendChild(s);
+  }
+  if(reduced) return;
+  for(let i=0;i<40;i++){
+    const d=document.createElement('div'); d.className='confetti'; d.textContent='😱';
+    d.style.cssText='left:'+(Math.random()*100)+'vw;font-size:'+(14+Math.random()*22)+'px;';
+    document.body.appendChild(d);
+    const a=d.animate(
+      [{transform:'translateY(0) rotate(0deg)',opacity:1},
+       {transform:'translateY(105vh) rotate('+(Math.random()*360-180)+'deg)',opacity:.8}],
+      {duration:1800+Math.random()*1600,easing:'cubic-bezier(.2,.6,.4,1)'});
+    a.onfinish=()=>d.remove();
+  }
+}
 })();
 </script>
 </body>
