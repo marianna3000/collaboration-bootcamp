@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ai-survival-guide — using AI tools without leaking the client</title>
+<meta name="description" content="A reference for AI-assisted engineering on client work: review before you accept, keep confidential data out of the box, control updates and agents, and get faster without a pro subscription.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1b1f23; --ink-soft:#4b5258;
+  --paper:#ffffff; --paper-dim:#f6f7f8; --rail:#d4d8dc;
+  --accent:#7c3aed; --accent-dim:#f3eefe;
+  --green:#2ea043; --green-dim:#e9f7ec;
+  --red:#cf222e; --red-dim:#fdecee;
+  --blue:#0969da; --yellow:#d4a017;
+  --code-bg:#16181d; --code-ink:#e8eaed;
+  --code-comment:#7d8590; --code-accent:#ffa657; --ghost:#6e7681;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --serif:'Source Serif 4',Georgia,serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{font-family:var(--serif);color:var(--ink);background:var(--paper);line-height:1.65;font-size:17px}
+h1,h2,h3,h4,.term,.chip,.badge,nav,th,figcaption,footer,.poster,.q,.btn,.qnode{font-family:var(--mono)}
+a{color:var(--blue)}
+a:focus-visible,button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+.layout{display:grid;grid-template-columns:300px 1fr;gap:2.2rem;max-width:1200px;margin:0 auto;padding:2.2rem 1.2rem 4rem}
+main{min-width:0}
+@media (max-width:920px){.layout{grid-template-columns:1fr}aside.queue{position:static;max-height:none}}
+
+h1{font-size:1.45rem;margin:1.2rem 0 .4rem;letter-spacing:-.02em}
+.subtitle{color:var(--ink-soft);font-style:italic;margin-bottom:1.6rem}
+h2{font-size:1.12rem;margin:.4rem 0 .9rem}
+h3{font-size:.95rem;margin:1.4rem 0 .6rem}
+section{padding-top:1.8rem;margin-top:1.2rem;border-top:1px dashed var(--rail)}
+p{margin:0 0 .9rem;max-width:70ch}
+ul,ol{margin:0 0 1rem 1.3rem;max-width:70ch}
+li{margin-bottom:.35rem}
+code{font-family:var(--mono);font-size:.86em;background:var(--paper-dim);border:1px solid var(--rail);border-radius:4px;padding:.06em .3em}
+
+/* sidebar: the review queue */
+aside.queue{position:sticky;top:1.2rem;align-self:start;max-height:calc(100vh - 2.4rem);overflow:auto;
+  font-size:.74rem;border:1px solid var(--rail);border-radius:10px;background:var(--paper-dim);padding:1rem .9rem}
+aside.queue .qtitle{font-weight:600;margin-bottom:.7rem;color:var(--ink-soft);letter-spacing:.03em}
+.qnode{display:flex;gap:.5rem;align-items:baseline;padding:.34rem .5rem;text-decoration:none;color:var(--ink);border-radius:6px}
+.qnode:hover{background:var(--accent-dim)}
+.qnode .st{flex:none;width:1.1em;text-align:center}
+.qnode .ok{color:var(--green)} .qnode .no{color:var(--red)} .qnode .pend{color:var(--yellow)} .qnode .acc{color:var(--accent)}
+.qkey{margin-top:.8rem;color:var(--ink-soft);font-size:.66rem;line-height:1.8}
+
+.chip{display:inline-flex;gap:.7rem;flex-wrap:wrap;align-items:baseline;font-size:.72rem;color:var(--ink-soft);
+  border:1px solid var(--rail);border-radius:99px;padding:.22rem .8rem;margin-bottom:.7rem;background:var(--paper-dim)}
+.chip .ok{color:var(--green)} .chip .no{color:var(--red)} .chip .pend{color:#946f00}
+
+/* hero editor */
+.term{background:var(--code-bg);color:var(--code-ink);border-radius:10px;overflow:hidden;
+  box-shadow:0 12px 30px rgba(27,31,35,.25);font-size:.8rem;margin-bottom:.4rem}
+.term-bar{background:#23262d;padding:.5rem .8rem;display:flex;gap:.45rem;align-items:center;color:#9aa1a9}
+.term-bar i{width:.75rem;height:.75rem;border-radius:50%;display:inline-block}
+.term-bar .r{background:#ff5f56}.term-bar .y{background:#ffbd2e}.term-bar .g{background:#27c93f}
+.term-bar span{margin-left:.5rem;font-size:.72rem}
+.term-body{position:relative;padding:1rem 1.1rem 1.2rem}
+.term-sizer{visibility:hidden;white-space:pre-wrap}
+.term-anim{position:absolute;top:1rem;left:1.1rem;right:1.1rem;bottom:1.2rem;white-space:pre-wrap}
+.term .ok{color:#3fb950}.term .err{color:#ff7b72}.term .dim{color:var(--code-comment)}.term .ghost{color:var(--ghost);font-style:italic}
+.term .cur{display:inline-block;width:.55em;height:1.05em;background:var(--code-ink);vertical-align:text-bottom;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* code blocks */
+.codewrap{position:relative;max-width:48rem;margin:0 0 1rem}
+pre{background:var(--code-bg);color:var(--code-ink);font-family:var(--mono);font-size:.78rem;line-height:1.6;
+  border-radius:8px;padding:1rem 1.1rem;overflow-x:auto;white-space:pre}
+pre code{background:none;border:none;padding:0;border-radius:0;font-size:inherit;color:inherit}
+pre .c{color:var(--code-comment)} pre .a{color:var(--code-accent)} pre .o{color:#7ee787} pre .bad{color:#ff7b72} pre .gh{color:var(--ghost);font-style:italic}
+.copybtn{position:absolute;top:.5rem;right:.5rem;font-family:var(--mono);font-size:.66rem;color:#9aa1a9;
+  background:#23262d;border:1px solid #3a3f47;border-radius:6px;padding:.25rem .6rem;cursor:pointer}
+.copybtn:hover{color:var(--code-ink);border-color:#9aa1a9}
+
+/* before/after */
+.ba{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;max-width:48rem;margin:0 0 1rem;align-items:start}
+@media (max-width:700px){.ba{grid-template-columns:1fr}}
+.ba>div{min-width:0;display:flex;flex-direction:column}
+.ba .lbl{font-family:var(--mono);font-size:.7rem;letter-spacing:.04em;margin-bottom:.3rem;display:block}
+.ba .no .lbl{color:var(--red)} .ba .yes .lbl{color:var(--green)}
+.ba pre{margin:0;flex:1}
+
+/* tables */
+.tablewrap{overflow-x:auto;max-width:48rem;margin:0 0 1rem}
+table{border-collapse:collapse;font-size:.82rem;min-width:100%}
+th{font-size:.72rem;text-align:left;letter-spacing:.03em;background:var(--paper-dim)}
+th,td{border:1px solid var(--rail);padding:.45rem .65rem;vertical-align:top}
+td .y{color:var(--green);font-weight:600} td .n{color:var(--red);font-weight:600}
+
+/* callouts */
+.note,.fix,.alarm{border-radius:8px;padding:.85rem 1rem;margin:0 0 1rem;font-size:.95rem;max-width:70ch}
+.note{background:var(--accent-dim);border-left:4px solid var(--accent)}
+.fix{background:var(--green-dim);border-left:4px solid var(--green)}
+.alarm{background:var(--red-dim);border-left:4px solid var(--red)}
+.note .lbl,.fix .lbl,.alarm .lbl{font-family:var(--mono);font-size:.72rem;display:block;margin-bottom:.3rem;letter-spacing:.05em;font-weight:600}
+.note .lbl{color:var(--accent)} .fix .lbl{color:var(--green)} .alarm .lbl{color:var(--red)}
+
+figure{margin:0 0 1.2rem;max-width:48rem}
+figure svg{width:100%;height:auto;display:block;border:1px solid var(--rail);border-radius:8px;background:var(--paper)}
+figcaption{font-size:.72rem;color:var(--ink-soft);margin-top:.4rem}
+
+/* wanted posters */
+.posters{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:0 0 1rem}
+@media (max-width:700px){.posters{grid-template-columns:1fr}}
+.poster{border:1px solid var(--rail);border-radius:8px;background:var(--paper-dim);padding:.9rem 1rem;font-size:.8rem;
+  box-shadow:2px 3px 0 rgba(27,31,35,.08);transition:transform .15s}
+.poster:hover{transform:rotate(-.6deg) translateY(-2px)}
+@media (prefers-reduced-motion:reduce){.poster,.poster:hover{transition:none;transform:none}}
+.poster .star{font-size:.62rem;color:var(--accent);letter-spacing:.2em;text-align:center;display:block}
+.poster .mug{font-size:1.6rem;text-align:center;display:block;margin:.2rem 0}
+.poster h4{text-align:center;margin:.1rem 0 .5rem;font-size:.86rem}
+.poster .crime{font-family:var(--serif);font-size:.88rem;margin-bottom:.5rem}
+.poster .bounty{background:var(--green-dim);border:1px solid var(--green);border-radius:6px;padding:.4rem .6rem;font-size:.74rem}
+.poster .bounty b{color:var(--green);display:block;font-size:.66rem;letter-spacing:.05em}
+
+/* versus */
+.versus{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:0 0 1rem;max-width:48rem}
+@media (max-width:700px){.versus{grid-template-columns:1fr}}
+.versus .vcard{border:1px solid var(--rail);border-radius:8px;padding:.9rem 1rem;font-size:.85rem;background:var(--paper-dim)}
+.versus .vcard h4{margin:0 0 .5rem}
+
+/* quiz */
+.q{border:1px solid var(--rail);border-radius:8px;padding:.9rem 1rem;margin:0 0 1rem;font-size:.86rem;max-width:48rem;background:var(--paper-dim)}
+.q .qq{font-weight:600;margin-bottom:.6rem}
+.q label{display:block;padding:.35rem .6rem;border-radius:6px;cursor:pointer;margin-bottom:.25rem;border:1px solid transparent;font-family:var(--serif);font-size:.92rem}
+.q label:hover{background:var(--accent-dim)}
+.q label.correct{background:var(--green-dim);border-color:var(--green)}
+.q label.wrong{background:var(--red-dim);border-color:var(--red)}
+.q .why{display:none;font-size:.82rem;color:var(--ink-soft);margin-top:.5rem;font-family:var(--serif)}
+.q.graded .why{display:block}
+.btn{font-size:.8rem;border:1px solid var(--ink);background:var(--paper);color:var(--ink);border-radius:6px;padding:.5rem 1rem;cursor:pointer}
+.btn:hover{background:var(--paper-dim)}
+#quizresult{font-family:var(--mono);font-size:.9rem;margin-top:.8rem;font-weight:600}
+
+.res li{margin-bottom:.55rem}
+
+.wipbanner{background:#fff4e6;border:1px solid #ea580c;border-radius:8px;padding:.7rem 1rem;margin:0 0 1.2rem;
+  font-family:var(--mono);font-size:.82rem;color:#9a3412;max-width:48rem}
+.wipbanner b{letter-spacing:.04em}
+#panic{position:fixed;right:1.2rem;bottom:1.2rem;z-index:50;font-family:var(--mono);font-size:.8rem;font-weight:600;
+  background:var(--red);color:#fff;border:none;border-radius:99px;padding:.7rem 1.2rem;cursor:pointer;
+  box-shadow:0 8px 20px rgba(207,34,46,.4);animation:pulse 2s infinite}
+#panic:hover{animation:shake .3s infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+@keyframes shake{0%,100%{transform:rotate(0)}25%{transform:rotate(-2deg)}75%{transform:rotate(2deg)}}
+@media (prefers-reduced-motion:reduce){#panic{animation:none}#panic:hover{animation:none}}
+body.flash{animation:redflash .5s}
+@keyframes redflash{0%{background:var(--red-dim)}100%{background:var(--paper)}}
+
+footer{border-top:1px solid var(--rail);margin-top:2.6rem;padding-top:1.4rem;font-size:.76rem;color:var(--ink-soft);font-family:var(--mono)}
+#egg{cursor:pointer;color:var(--green);font-weight:600}
+.confetti{position:fixed;top:-12px;z-index:99;pointer-events:none;border-radius:2px}
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .5s,transform .5s}
+.reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
+</style>
+</head>
+<body>
+
+<button id="panic" type="button" aria-label="Panic: jump to incident recovery">🚨 LEAKED</button>
+
+<div class="layout">
+
+<aside class="queue" aria-label="Table of contents, styled as a review queue of AI suggestions">
+  <span class="qtitle">review queue — accept nothing unread</span>
+  <nav>
+    <a class="qnode" href="#s00"><span class="st ok">✓</span> why_this_exists</a>
+    <a class="qnode" href="#s01"><span class="st ok">✓</span> the_daily_loop</a>
+    <a class="qnode" href="#s02"><span class="st ok">✓</span> what_it_actually_is</a>
+    <a class="qnode" href="#s03"><span class="st ok">✓</span> mental_model · the_eager_junior</a>
+    <a class="qnode" href="#s04"><span class="st ok">✓</span> core_reference · loop · skills · review</a>
+    <a class="qnode" href="#s05"><span class="st no">⚠</span> what_goes_in_the_box · LEAKAGE</a>
+    <a class="qnode" href="#s06"><span class="st acc">⚙</span> configs_that_pay_rent</a>
+    <a class="qnode" href="#s07"><span class="st no">✗</span> the_most_wanted · 8 rejected</a>
+    <a class="qnode" href="#s08"><span class="st pend">⧖</span> the_eternal_debate</a>
+    <a class="qnode" href="#s09"><span class="st no">✗</span> incident_recovery · SOS</a>
+    <a class="qnode" href="#s10"><span class="st pend">⧖</span> boss_fight</a>
+    <a class="qnode" href="#s11"><span class="st ok">✓</span> resources</a>
+  </nav>
+  <div class="qkey"><span class="ok">✓</span> reviewed · <span class="no">✗</span> rejected · <span class="no">⚠</span> read this twice · <span class="pend">⧖</span> your turn</div>
+</aside>
+
+<main>
+
+<div class="term" role="img" aria-label="Animated editor: an AI autocomplete suggests code that hardcodes a real-looking client database password, one Tab-press from being committed.">
+  <div class="term-bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>editor — pricing.py — AI assist on</span></div>
+  <div class="term-body"><div class="term-sizer" id="termSizer" aria-hidden="true"></div><div class="term-anim" id="termBody" aria-hidden="true"></div></div>
+</div>
+
+<h1>ai-survival-guide</h1>
+<p class="subtitle">Working fast with AI tools — the model, the harness, the loop — without leaking the client, shipping code you don't understand, or letting an agent off the leash. You are still the engineer of record.</p>
+
+<div class="wipbanner">🚧 <b>WORK IN PROGRESS</b> — this module is a draft. The principles are sound, but it hasn't had the full review the other guides have; don't treat it as settled team guidance yet. Feedback welcome via PR.</div>
+
+<!-- 00 WHY -->
+<section id="s00" class="reveal">
+  <span class="chip">✓ 00 · why_this_exists · <span class="ok">reviewed</span></span>
+  <h2>00 · why this page exists</h2>
+  <p>The rest of the series makes your <a href="/collaboration-bootcamp/consultant-setup-survival-guide/">machine</a>, <a href="/collaboration-bootcamp/git-survival-guide/">history</a>, <a href="/collaboration-bootcamp/python-survival-guide/">code</a>, <a href="/collaboration-bootcamp/pipeline-survival-guide/">pipeline</a>, and <a href="/collaboration-bootcamp/spark-survival-guide/">jobs</a> trustworthy. This module is about the newest member of the team — the AI assistant — and the fact that it is a brilliant, tireless junior with no judgement, no memory of your NDA, and no name on the commit. Yours is.</p>
+  <p>This page will not make you good at using AI by itself, and it will not teach a specific tool — the tools change every month, their privacy settings change with them, and a guide pinned to one product's menus would be wrong by the next release. What it <em>is</em>: how these tools actually work (the model, the harness, the loop), how to get real leverage from them, and the durable questions to ask of <em>any</em> AI tool so a productivity boost doesn't turn into a confidentiality incident.</p>
+  <p>The frame for everything below: <strong>you are accountable for what you ship, and for what you put in the box.</strong> The AI is a tool, like a compiler with opinions. A compiler that occasionally invents a function that doesn't exist, and would happily paste your client's production password into a public model's training set if you let it.</p>
+</section>
+
+<!-- 01 LOOP -->
+<section id="s01" class="reveal">
+  <span class="chip">✓ 01 · the_daily_loop · <span class="ok">reviewed</span></span>
+  <h2>01 · day zero: the loop</h2>
+  <p>Every productive AI interaction is the same loop, and skipping a step is where the trouble starts. The two steps people drop under deadline are exactly the two that matter: <strong>check what you're about to send</strong>, and <strong>understand before you accept</strong>.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 120" role="img" aria-label="A loop of pills: frame the task, redact the context, ask, review the suggestion, understand it, test it, with a dashed repeat arrow. Redact and understand are highlighted as the steps people skip.">
+      <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#4b5258"/></marker></defs>
+      <g font-family="IBM Plex Mono, monospace" font-size="11">
+        <rect x="8" y="34" width="92" height="30" rx="15" fill="#f3eefe" stroke="#7c3aed"/><text x="54" y="53" text-anchor="middle">frame task</text>
+        <rect x="116" y="34" width="118" height="30" rx="15" fill="#fdecee" stroke="#cf222e"/><text x="175" y="53" text-anchor="middle">redact context</text>
+        <rect x="250" y="34" width="62" height="30" rx="15" fill="#f3eefe" stroke="#7c3aed"/><text x="281" y="53" text-anchor="middle">ask</text>
+        <rect x="328" y="34" width="96" height="30" rx="15" fill="#f3eefe" stroke="#7c3aed"/><text x="376" y="53" text-anchor="middle">review diff</text>
+        <rect x="440" y="34" width="120" height="30" rx="15" fill="#fdecee" stroke="#cf222e"/><text x="500" y="53" text-anchor="middle">understand it</text>
+        <rect x="576" y="34" width="118" height="30" rx="15" fill="#e9f7ec" stroke="#2ea043"/><text x="635" y="53" text-anchor="middle">test · commit</text>
+        <line x1="100" y1="49" x2="114" y2="49" stroke="#4b5258" marker-end="url(#arr)"/>
+        <line x1="234" y1="49" x2="248" y2="49" stroke="#4b5258" marker-end="url(#arr)"/>
+        <line x1="312" y1="49" x2="326" y2="49" stroke="#4b5258" marker-end="url(#arr)"/>
+        <line x1="424" y1="49" x2="438" y2="49" stroke="#4b5258" marker-end="url(#arr)"/>
+        <line x1="560" y1="49" x2="574" y2="49" stroke="#4b5258" marker-end="url(#arr)"/>
+        <path d="M635 64 V92 H54 V66" fill="none" stroke="#4b5258" stroke-dasharray="4 4" marker-end="url(#arr)"/>
+        <text x="384" y="106" text-anchor="middle" fill="#cf222e" font-size="10">the two red steps are the ones deadline-you skips — and the only two that cause incidents</text>
+      </g>
+    </svg>
+    <figcaption>fig 0 — the loop. The AI does "ask → suggestion" in a second; the value and the safety are in the steps around it that take a human.</figcaption>
+  </figure>
+
+  <div class="note"><span class="lbl">IF YOU ONLY REMEMBER THREE THINGS</span>
+  <p style="margin:0">① <strong>Nothing you can't show the client goes in the box</strong> — assume anything you send may be stored, logged, or trained on unless you've verified otherwise. ② <strong>You review the AI's code the way you'd review a stranger's PR</strong> — if you can't explain it, you can't merge it. ③ <strong>The agent acts; you stay the approver</strong> — keep a human between the suggestion and anything irreversible.</p></div>
+</section>
+
+<!-- 02 WHAT IT IS -->
+<section id="s02" class="reveal">
+  <span class="chip">✓ 02 · what_it_actually_is · <span class="ok">reviewed</span></span>
+  <h2>02 · what these tools actually are</h2>
+  <p>Modern coding assistants are <strong>large language models</strong>: systems trained on enormous amounts of text and code to predict the next token. That's the whole trick, and every strength and failure mode falls out of it. They are astonishing pattern-completers and they do not <em>know</em> anything — they produce the most plausible continuation, which is usually right and occasionally a confident fabrication wearing the costume of a right answer.</p>
+  <p>They arrive in roughly three shapes, in increasing order of power and risk:</p>
+  <ul>
+    <li><strong>Autocomplete</strong> (inline "ghost text") — completes the line or block as you type. Lowest friction, easiest to accept on autopilot.</li>
+    <li><strong>Chat</strong> — you paste context and ask; it answers. You control exactly what goes in, which is the point and the trap.</li>
+    <li><strong>Agents</strong> — given a goal, they read files, run commands, edit code, and loop until done. Highest leverage, and the only category that can take destructive action on your behalf.</li>
+  </ul>
+  <p>The honest history: this went from "neat autocomplete" to "writes the whole function" to "runs your terminal" in about three years, which is why the tooling is powerful, the defaults are immature, and the security guidance — this page included — is still being written in real time. Treat confident claims about AI tools (again, this page included) as provisional, and verify the ones that touch confidential data against the tool's <em>current</em> documentation.</p>
+
+  <h3>the model is not the tool: model vs harness</h3>
+  <p>Two things get conflated, and keeping them apart explains most of how these tools behave. The <strong>model</strong> is the token-predictor — the engine. The <strong>harness</strong> is everything wrapped around it: the loop that lets it call tools, run commands, read files, fetch URLs, and feed the results back so it can take another step. Claude Code, Codex, and IDE agents are <em>harnesses</em>; the model is the part inside that does the thinking.</p>
+  <p>This matters because most of what makes an agent useful — or dangerous — lives in the <strong>harness</strong>, not the model: which tools it's allowed to call, whether it asks before acting, what it pulls into context, how it handles a filling context window. When you "choose an AI tool" or "lock down its settings," you are mostly choosing and configuring a harness. The same model is a polite autocomplete in one harness and an agent with your shell in another.</p>
+  <div class="note"><span class="lbl">THE THREE SHAPES, ONE RULE</span><p style="margin:0">Autocomplete → chat → agent is really "more harness": more tools, more autonomy, more context gathered for you. You gain leverage and lose oversight by default. The discipline is identical at every level, just more important the further right you go: <strong>know what went in, and review what comes out</strong>.</p></div>
+</section>
+
+<!-- 03 MENTAL MODEL -->
+<section id="s03" class="reveal">
+  <span class="chip">✓ 03 · mental_model · <span class="ok">the eager junior</span></span>
+  <h2>03 · the mental model: a brilliant junior with no accountability</h2>
+  <p><strong>Naive model:</strong> "It's a search engine that writes code — if it said it, it's probably right." <strong>Real model:</strong> it's an extremely fast, widely-read, supremely confident <em>junior engineer</em> who only knows what's in front of them right now, will never be blamed, doesn't know your NDA exists, and cannot tell you when they're guessing. You are the senior who reviews, signs off, and owns the outcome.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 250" role="img" aria-label="Two columns. Left, the naive model: a trusted oracle whose output goes straight to commit. Right, the real model: an eager junior whose suggestion passes through a human review gate before reaching the repo, with rejected and accepted paths.">
+      <g font-family="IBM Plex Mono, monospace" font-size="11">
+        <rect x="10" y="10" width="350" height="228" rx="8" fill="#fdecee" stroke="#cf222e"/>
+        <text x="185" y="32" text-anchor="middle" fill="#cf222e" font-weight="bold">NAIVE: trusted oracle ❌</text>
+        <rect x="70" y="52" width="210" height="40" rx="6" fill="#fff" stroke="#1b1f23"/><text x="175" y="77" text-anchor="middle">AI says it</text>
+        <line x1="175" y1="92" x2="175" y2="120" stroke="#4b5258" marker-end="url(#arr)"/>
+        <rect x="70" y="122" width="210" height="40" rx="6" fill="#fff" stroke="#1b1f23"/><text x="175" y="147" text-anchor="middle">paste / Tab-accept</text>
+        <line x1="175" y1="162" x2="175" y2="190" stroke="#4b5258" marker-end="url(#arr)"/>
+        <rect x="70" y="192" width="210" height="34" rx="6" fill="#fdecee" stroke="#cf222e"/><text x="175" y="214" text-anchor="middle" fill="#cf222e">shipped, unread</text>
+
+        <rect x="400" y="10" width="350" height="228" rx="8" fill="#e9f7ec" stroke="#2ea043"/>
+        <text x="575" y="32" text-anchor="middle" fill="#2ea043" font-weight="bold">REAL: junior + review gate ✓</text>
+        <rect x="455" y="48" width="240" height="36" rx="6" fill="#fff" stroke="#7c3aed"/><text x="575" y="71" text-anchor="middle">eager junior suggests</text>
+        <line x1="575" y1="84" x2="575" y2="106" stroke="#4b5258" marker-end="url(#arr)"/>
+        <rect x="455" y="108" width="240" height="40" rx="6" fill="#f3eefe" stroke="#7c3aed"/><text x="575" y="128" text-anchor="middle">YOU review:</text><text x="575" y="142" text-anchor="middle" font-size="9">does it run? do I get it? safe?</text>
+        <line x1="500" y1="148" x2="470" y2="178" stroke="#cf222e" marker-end="url(#arr)"/>
+        <line x1="650" y1="148" x2="680" y2="178" stroke="#2ea043" marker-end="url(#arr)"/>
+        <rect x="408" y="180" width="120" height="34" rx="6" fill="#fdecee" stroke="#cf222e"/><text x="468" y="202" text-anchor="middle" fill="#cf222e" font-size="10">reject / redo</text>
+        <rect x="622" y="180" width="120" height="34" rx="6" fill="#e9f7ec" stroke="#2ea043"/><text x="682" y="202" text-anchor="middle" fill="#2ea043" font-size="10">accept ✓</text>
+      </g>
+    </svg>
+    <figcaption>fig 1 — the only structural difference that matters: a human review gate between the suggestion and the repo. Everything else in this guide defends that gate.</figcaption>
+  </figure>
+
+  <p>Hold all four of the junior's traits at once and most decisions make themselves. <strong>Fast and well-read</strong>: lean on it for boilerplate, unfamiliar syntax, first drafts, and rubber-ducking. <strong>Only knows what's in its context</strong>: the model has no inherent, persistent knowledge of <em>your</em> codebase. A plain chat has seen nothing of it; an agent or IDE tool (Claude Code, Codex, an indexed assistant) can read it — but only the parts it retrieved or that fit the window, and it forgets at the session's end. So it still guesses at internal APIs whenever the relevant code isn't actually in front of it — give it the real code, and verify against yours. <strong>Won't be blamed</strong>: the accountability is entirely yours, so the review is not optional. <strong>Can't tell when it's guessing</strong>: a fabricated library, function, or fact reads exactly as confidently as a correct one — this is called <em>hallucination</em>, and it is the failure mode that ships bugs.</p>
+  <div class="alarm"><span class="lbl">THE ACCOUNTABILITY RULE</span><p style="margin:0">"The AI wrote it" is not a defence — not in code review, not in a security post-mortem, not to a client. The moment you accept a suggestion it is <strong>your code</strong>, with your name in <code>git blame</code>. Use the AI to write faster; never to <em>understand</em> less.</p></div>
+</section>
+
+<!-- 04 CORE REFERENCE -->
+<section id="s04" class="reveal">
+  <span class="chip">✓ 04 · core_reference · <span class="ok">prompt + review</span></span>
+  <h2>04 · core reference: prompting and reviewing</h2>
+
+  <h3>get more out of it without a pro subscription</h3>
+  <p>The biggest efficiency lever is not the tier — it's the <strong>prompt and the context</strong>. A free model with a good prompt beats a frontier model with a vague one. What actually moves the needle, in order:</p>
+  <ul>
+    <li><strong>State the goal, the constraints, and the shape of the answer.</strong> "Rewrite this function to stream instead of buffering; keep the signature; Python 3.12; no new dependencies" gets a usable answer the first time. "make this better" burns a turn.</li>
+    <li><strong>Give it the relevant code, not the repo.</strong> The right two functions and a type beat ten files of noise — better answers <em>and</em> less to leak (see <a href="#s05">§05</a>).</li>
+    <li><strong>Show one example of the pattern you want.</strong> One sample input/output or one "do it like this" snippet outperforms paragraphs of description.</li>
+    <li><strong>Iterate in the same thread.</strong> "Now handle the empty case" is cheaper and better than re-describing from scratch.</li>
+    <li><strong>Ask it to explain, not just produce.</strong> "Explain the trade-offs first, then write it" turns the review step into part of the answer — and catches the confident-wrong answer early.</li>
+  </ul>
+  <div class="note"><span class="lbl">THE FREE-TIER PLAYBOOK</span><p style="margin:0">Most of the gain is available free: use generous free tiers for boilerplate, explanation, and unfamiliar syntax; reserve any paid seat (if you have one) for the long-context, whole-codebase work that free tiers throttle. The constraint that actually decides your tool is <a href="#s05">what you're allowed to put in it</a> — not the price.</p></div>
+
+  <h3>the review discipline — treat it like a stranger's PR</h3>
+  <p>You already have the checklist: it's the <a href="/collaboration-bootcamp/git-survival-guide/#pr">git guide's self-review</a>, pointed at code you didn't write. Specifically, before you accept:</p>
+  <div class="tablewrap"><table>
+    <tr><th>check</th><th>the AI-specific failure it catches</th></tr>
+    <tr><td>Does it run, and do the tests pass?</td><td>plausible code that doesn't actually execute</td></tr>
+    <tr><td>Do these functions/libraries <em>exist</em>?</td><td><strong>hallucinated</strong> APIs and packages (also a supply-chain risk — see §07)</td></tr>
+    <tr><td>Can I explain every line?</td><td>subtly wrong logic hiding in confident, clean-looking code</td></tr>
+    <tr><td>Does it match <em>our</em> conventions and real APIs?</td><td>the model guessed at internal code it didn't actually have in context</td></tr>
+    <tr><td>Any secret, path, or client detail baked in?</td><td>credentials and PII the model "helpfully" hardcoded</td></tr>
+  </table></div>
+
+  <h3>the many faces of "context"</h3>
+  <p>"Context" is whatever the tool sends to the model — and it's often more than you typed. Knowing what each mode sends is the whole game for §05.</p>
+  <div class="tablewrap"><table>
+    <tr><th>mode</th><th>what it sends to the model</th><th>how much you control</th></tr>
+    <tr><td>inline autocomplete</td><td>nearby code, open files, sometimes the whole project</td><td><span class="n">low — it decides</span></td></tr>
+    <tr><td>chat (you paste)</td><td>exactly what you paste</td><td><span class="y">total — you choose every token</span></td></tr>
+    <tr><td>chat with "@codebase" / indexing</td><td>retrieved snippets from across the repo</td><td><span class="n">partial — it retrieves</span></td></tr>
+    <tr><td>agent</td><td>files it reads, command output, web pages it fetches</td><td><span class="n">low — it gathers as it goes</span></td></tr>
+  </table></div>
+
+  <h3>the agent loop, and where you stand in it</h3>
+  <p>An agent doesn't answer once and stop — it <strong>loops</strong>. Given a goal, it plans a step, acts (calls a tool: edits a file, runs a command, fetches a page), observes the result, and decides the next step, repeating until it judges the goal met or gets stuck. That loop is the whole reason agents can fix their own mistakes — they see the error and try again — and the whole reason they can run off a cliff at speed.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 200" role="img" aria-label="The agent loop: goal feeds into a cycle of plan, act (call a tool), observe (read the result), which loops back to plan. The context window fills as the loop runs. The human sets the goal and approval gate and the exit condition.">
+      <defs><marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#4b5258"/></marker></defs>
+      <g font-family="IBM Plex Mono, monospace" font-size="11">
+        <rect x="14" y="84" width="96" height="34" rx="6" fill="#f3eefe" stroke="#7c3aed"/><text x="62" y="105" text-anchor="middle">your goal</text>
+        <line x1="110" y1="101" x2="156" y2="101" stroke="#4b5258" marker-end="url(#arr2)"/>
+        <rect x="158" y="60" width="92" height="34" rx="6" fill="#fff" stroke="#1b1f23"/><text x="204" y="81" text-anchor="middle">plan</text>
+        <rect x="300" y="60" width="120" height="34" rx="6" fill="#fff" stroke="#1b1f23"/><text x="360" y="76" text-anchor="middle">act</text><text x="360" y="89" text-anchor="middle" font-size="8.5">call a tool / run</text>
+        <rect x="470" y="60" width="120" height="34" rx="6" fill="#fff" stroke="#1b1f23"/><text x="530" y="76" text-anchor="middle">observe</text><text x="530" y="89" text-anchor="middle" font-size="8.5">read the result</text>
+        <line x1="250" y1="77" x2="298" y2="77" stroke="#4b5258" marker-end="url(#arr2)"/>
+        <line x1="420" y1="77" x2="468" y2="77" stroke="#4b5258" marker-end="url(#arr2)"/>
+        <path d="M530 94 V128 H204 V96" fill="none" stroke="#7c3aed" stroke-dasharray="5 4" marker-end="url(#arr2)"/>
+        <text x="367" y="146" text-anchor="middle" fill="#7c3aed" font-size="9.5">repeat — and every turn adds to a finite context window</text>
+        <rect x="612" y="44" width="134" height="66" rx="6" fill="#e9f7ec" stroke="#2ea043"/>
+        <text x="679" y="64" text-anchor="middle" fill="#2ea043" font-size="9.5">YOU own:</text>
+        <text x="679" y="80" text-anchor="middle" font-size="8.5">the goal · the exit</text>
+        <text x="679" y="93" text-anchor="middle" font-size="8.5">condition · the gate</text>
+        <text x="679" y="106" text-anchor="middle" font-size="8.5">on risky acts</text>
+        <line x1="590" y1="77" x2="610" y2="77" stroke="#2ea043" marker-end="url(#arr2)"/>
+        <text x="380" y="180" text-anchor="middle" fill="#cf222e" font-size="9.5">no exit condition (no test, no "done") → it spins · context fills → detail rots → it forgets why it started</text>
+      </g>
+    </svg>
+    <figcaption>fig 2 — the agent loop. Your three jobs are upstream and downstream of it: set a goal with a checkable exit, and hold the approval gate on anything irreversible.</figcaption>
+  </figure>
+
+  <p>Two consequences shape how you work with the loop. First, the <strong>context window is the agent's working memory and it's finite</strong> — every step (files read, commands run, output) fills it. Long, sprawling sessions fill it up; the harness then compacts or summarizes, and detail quietly rots, which is why a marathon agent run drifts from what you asked. The fix is to <strong>scope tasks small enough that one loop finishes before it forgets</strong>, and start a fresh session for the next thing rather than letting one run for an hour. Second, <strong>a loop needs an exit it can check</strong>: "make this test pass" terminates and is verifiable; "improve the codebase" never terminates and can't be reviewed. Give it a goal with a green light at the end.</p>
+
+  <h3>prompt vs skill vs harness — what to put where</h3>
+  <p>When the AI keeps doing a thing slightly wrong, the fix lives at one of three layers, and naming the layer saves you from solving it in the wrong place:</p>
+  <div class="tablewrap"><table>
+    <tr><th>layer</th><th>what it is</th><th>reach for it when…</th></tr>
+    <tr><td><strong>prompt / context</strong></td><td>the one-off ask for this task — the instructions and code you hand it now</td><td>it's a single task; you just need to be clearer or give the real code</td></tr>
+    <tr><td><strong>skill</strong></td><td>a named, reusable bundle of instructions (sometimes with scripts) the agent loads when a recurring task appears — "how we write migrations," "our PR checklist"</td><td>you've pasted the same procedure three times; encode it once so the agent applies it consistently without you re-explaining</td></tr>
+    <tr><td><strong>harness</strong></td><td>the loop, the tools it can call, and the permissions it runs under — the runtime you configure, not write per task</td><td>you're fighting <em>what it's allowed to do</em> (too much access, no approval step, can't see the right files) — that's config, not prompting</td></tr>
+  </table></div>
+  <div class="note"><span class="lbl">THE TELL</span><p style="margin:0">If you're re-explaining the same workflow to the AI every week, that's a <strong>skill</strong>, not a prompt — promote it. If you're repeatedly talking it out of doing something dangerous, that's the <strong>harness</strong> — fix the permissions, don't rely on asking nicely. Prompting harder is the right fix only for genuinely one-off work.</p></div>
+</section>
+
+<!-- 05 LEAKAGE -->
+<section id="s05" class="reveal">
+  <span class="chip">⚠ 05 · what_goes_in_the_box · <span class="no">read this twice</span></span>
+  <h2>05 · what goes in the box: not leaking the client</h2>
+  <p>This is the section the whole module exists for. As a consultant you are handling someone else's confidential code and data under an NDA, and an AI tool is a pipe to a third party. The cardinal sin is putting client-confidential material into a tool that <strong>retains, logs, or trains on it</strong> — because once it's in someone else's model or training set, you cannot get it back, and you have breached the NDA whether or not anything visibly "happens."</p>
+
+  <div class="alarm"><span class="lbl">🚫 THE BRIGHT LINE</span><p style="margin:0">If you couldn't paste it into a stranger's public website, don't paste it into an AI tool you haven't verified. Client source code, real data, customer PII, credentials, internal URLs, architecture details, unreleased plans — all of it is "client confidential" by default. <strong>When unsure, treat it as confidential.</strong></p></div>
+
+  <h3>the three questions to ask of any tool, before any client data touches it</h3>
+  <ol>
+    <li><strong>Retention:</strong> does it store my inputs, and for how long? "Zero data retention" is the phrase to look for; "30-day abuse-monitoring logs" is not zero.</li>
+    <li><strong>Training:</strong> does it train on my inputs? Consumer/free tiers often do <em>by default</em>; business, enterprise, and API tiers usually don't — but this is a setting and a contract term, not a vibe. Verify both.</li>
+    <li><strong>Tenancy &amp; contract:</strong> is there an agreement that covers confidential data (a DPA, a zero-retention API arrangement, an enterprise term)? For a regulated client, "I toggled a setting" is weaker than "there's a signed term."</li>
+  </ol>
+  <p>Crucially, <strong>the client decides, not you.</strong> Many engagements have an explicit AI policy — sanctioned tools, approved data classes, an outright ban on certain repos. Find it before you start. Where there's no policy, the safe default is: assume client material may not go into external AI tools until someone with authority says which tool and which data are approved, in writing.</p>
+
+  <h3>how to get the help without sending the secret</h3>
+  <div class="ba">
+    <div class="no"><span class="lbl">▶ leaks: real context pasted whole</span>
+      <pre><code><span class="bad"># pasted into a public chat tool:</span>
+"why does this fail?
+conn = connect(
+  'postgresql://svc_nimbus:Pr0d!9x@'
+  'nimbus-prod.internal:5432/billing')
+# ...400 lines of client code..."</code></pre></div>
+    <div class="yes"><span class="lbl">✓ same help, nothing confidential</span>
+      <pre><code><span class="o"># reduced to the shape of the problem:</span>
+"why might a psycopg2 connection
+ time out only under load?
+ conn string + creds via env var,
+ pooled, ~200 concurrent."
+<span class="c"># no creds, no host, no client code</span></code></pre></div>
+  </div>
+  <p>The techniques, cheapest first: <strong>reproduce the problem in a tiny neutral snippet</strong> (usually the fastest path anyway); <strong>redact</strong> names, hosts, keys, and data to placeholders; <strong>describe the shape</strong> instead of pasting the thing; and for the cases where you genuinely need real code on real data, use a tool the client has approved for it.</p>
+
+  <h3>the escape hatch: keep it on your machine</h3>
+  <p>When the work genuinely needs confidential code <em>and</em> you can't send it anywhere, run a <strong>local or self-hosted model</strong> — the weights run on your hardware (or the client's), and nothing leaves the box. Capabilities trail the frontier hosted models and it costs you RAM and setup, but for "I cannot legally transmit this," local inference is the answer that makes the question disappear. It's also the one option whose privacy you can fully verify: no network, no retention, no contract to read.</p>
+  <div class="fix"><span class="lbl">THE BOUNDARY RULE (again — it's the whole series)</span><p style="margin:0">Validate the outside world at the door; here, decide <strong>at the door</strong> what may leave your machine. The setup guide says secrets live in <code>.env</code> and never in git; this guide adds: and never in a prompt. Same instinct, new pipe.</p></div>
+</section>
+
+<!-- 06 CONFIGS -->
+<section id="s06" class="reveal">
+  <span class="chip">⚙ 06 · configs_that_pay_rent · <span class="ok">set once</span></span>
+  <h2>06 · the settings that keep you safe</h2>
+  <p>Discipline you have to remember fails under deadline; settings and gates don't. The tool-agnostic checklist — find the equivalent in whatever you use, and verify, don't assume:</p>
+  <div class="tablewrap"><table>
+    <tr><th>setting / gate</th><th>what it prevents</th><th>where</th></tr>
+    <tr><td>turn OFF "train on my data" / improve-the-model</td><td>your input entering a training set</td><td>account &amp; privacy settings; often on by default on free tiers</td></tr>
+    <tr><td>prefer a zero-retention / business / API tier for client work</td><td>inputs stored in logs you don't control</td><td>plan choice + the provider's data terms</td></tr>
+    <tr><td>scope what autocomplete &amp; indexing can read</td><td>silent upload of files you didn't mean to share</td><td>an ignore file (e.g. <code>.aiignore</code>/<code>.cursorignore</code>); disable indexing on sensitive repos</td></tr>
+    <tr><td>secret-scanning pre-commit hook</td><td>an AI-suggested or pasted key reaching the repo</td><td><code>gitleaks</code> in pre-commit — see the <a href="/collaboration-bootcamp/git-survival-guide/#setup">git guide</a></td></tr>
+    <tr><td>run agents sandboxed / least-privilege</td><td>a destructive or injected command hitting real systems</td><td>containers, scoped tokens, no prod creds in the agent's env</td></tr>
+    <tr><td>require approval for agent actions</td><td>irreversible steps taken without you</td><td>the tool's "ask before running / applying" mode — keep it on</td></tr>
+  </table></div>
+
+  <h3>updates: control them, don't fear them and don't auto-trust them</h3>
+  <p>The instinct to "turn off auto-updates for security" is half-right and, taken literally, dangerous — blocking updates is how you end up running the version with the public CVE. The actual goal is <strong>control</strong>, not abstinence:</p>
+  <ul>
+    <li><strong>Don't auto-update blindly</strong> — a silent update can change what data the tool sends, add a feature that indexes your repo, or pull in a compromised dependency. Updates that change behaviour deserve a glance at the changelog.</li>
+    <li><strong>Don't block security patches</strong> — pin and review, then apply. "Never update" trades a hypothetical bad update for a certain known vulnerability.</li>
+    <li><strong>Vet extensions and MCP servers like dependencies</strong> — every editor extension and every agent connector runs with your access. Install from sources you'd trust with your credentials, check what permissions they ask for, and prefer few well-known ones over many convenient unknowns. This is the <a href="/collaboration-bootcamp/consultant-setup-survival-guide/">setup guide</a>'s "pin everything, vet your tools" applied to a surface that can read your whole project and call out to the network.</li>
+  </ul>
+  <div class="note"><span class="lbl">DATABRICKS / ENTERPRISE REALITY</span><p style="margin:0">On a managed platform or under a corporate AI policy, most of these are decided <em>for</em> you — sanctioned models, retention terms, and network egress are set at the org level. Your job there is to <strong>stay inside the sanctioned path</strong> and not route around it with a personal account because it's faster. The shadow-AI workaround is the incident.</p></div>
+</section>
+
+<!-- 07 MOST WANTED -->
+<section id="s07" class="reveal">
+  <span class="chip">✗ 07 · the_most_wanted · <span class="no">8 rejected</span></span>
+  <h2>07 · the most wanted</h2>
+  <p>Eight habits that turn an AI productivity boost into an incident report. All have a commit with your name on it.</p>
+  <div class="posters">
+    <div class="poster"><span class="star">★ WANTED ★</span><span class="mug">🙈</span><h4>The Blind Accepter</h4>
+      <p class="crime"><strong>Crime:</strong> Tab-accepts every suggestion without reading it. Ships code they can't explain; finds out what it does when it pages them.</p>
+      <div class="bounty"><b>THE FIX</b>Read before you accept. If you can't explain a line in review, you can't merge it — AI or not.</div></div>
+    <div class="poster"><span class="star">★ WANTED ★</span><span class="mug">🔑</span><h4>The Secret Paster</h4>
+      <p class="crime"><strong>Crime:</strong> pastes a stack trace — with the live connection string in it — into a public chat tool "just to debug quickly".</p>
+      <div class="bounty"><b>THE FIX</b>Redact before you paste. The key is now compromised: rotate it (see SOS). Better: env vars, never in the text you send.</div></div>
+    <div class="poster"><span class="star">★ WANTED ★</span><span class="mug">📂</span><h4>The Context Dumper</h4>
+      <p class="crime"><strong>Crime:</strong> pastes the entire client repo for a one-function question. Worse answers, and a wholesale NDA breach in one Ctrl-V.</p>
+      <div class="bounty"><b>THE FIX</b>Send the minimal relevant snippet. Less to leak, and the model answers better with less noise.</div></div>
+    <div class="poster"><span class="star">★ WANTED ★</span><span class="mug">👻</span><h4>The Hallucination Shipper</h4>
+      <p class="crime"><strong>Crime:</strong> merged a call to <code>pandas.read_parquet_fast()</code>. It doesn't exist. Neither did the package the AI told them to <code>pip install</code>.</p>
+      <div class="bounty"><b>THE FIX</b>Verify functions and packages exist before using them — hallucinated package names are also a supply-chain attack vector ("slopsquatting").</div></div>
+    <div class="poster"><span class="star">★ WANTED ★</span><span class="mug">🤖</span><h4>The Unleashed Agent</h4>
+      <p class="crime"><strong>Crime:</strong> gave an agent prod credentials and "auto-approve all," went to lunch. Came back to a migration it ran on the wrong database.</p>
+      <div class="bounty"><b>THE FIX</b>Sandbox agents, scoped tokens, no prod creds in reach, approval required for irreversible actions.</div></div>
+    <div class="poster"><span class="star">★ WANTED ★</span><span class="mug">🎣</span><h4>The Injection Victim</h4>
+      <p class="crime"><strong>Crime:</strong> pointed an agent at a web page / issue / file that contained hidden instructions. The agent followed them, not the user.</p>
+      <div class="bounty"><b>THE FIX</b>Treat all fetched content as untrusted data, not commands. Don't give agents both sensitive access and exposure to arbitrary content.</div></div>
+    <div class="poster"><span class="star">★ WANTED ★</span><span class="mug">🚪</span><h4>The Shadow-AI Smuggler</h4>
+      <p class="crime"><strong>Crime:</strong> the client's tool was slow, so they used a personal account on the real code "just this once." The policy existed for a reason.</p>
+      <div class="bounty"><b>THE FIX</b>Stay inside the sanctioned path. If it's too slow, raise it — routing around the policy IS the incident.</div></div>
+    <div class="poster"><span class="star">★ WANTED ★</span><span class="mug">🔄</span><h4>The Blind Auto-Updater</h4>
+      <p class="crime"><strong>Crime:</strong> auto-updates everything instantly OR refuses every update on principle. One ships a compromised extension; the other runs the known CVE.</p>
+      <div class="bounty"><b>THE FIX</b>Control updates: review changelogs, apply security patches, vet extensions and MCP servers like the dependencies they are.</div></div>
+  </div>
+  <p style="font-size:.85rem">🎲 <button class="btn" id="halluc" type="button">generate a confident hallucination</button> <span id="hallucout" style="font-family:var(--mono);font-size:.8rem;color:var(--ink-soft)"></span></p>
+</section>
+
+<!-- 08 DEBATE -->
+<section id="s08" class="reveal">
+  <span class="chip">⧖ 08 · the_eternal_debate · <span class="pend">your turn</span></span>
+  <h2>08 · the eternal debate: let it drive, or keep your hands on the wheel</h2>
+  <div class="versus">
+    <div class="vcard"><h4>🏎️ full autonomy</h4>
+      <p>"Give the agent the goal and let it run — read, edit, test, loop. Reviewing every step throws away the whole speed advantage."</p>
+      <p><em>Fails when:</em> it confidently does the wrong thing fast, on real systems, and you're accountable for a change you never saw.</p></div>
+    <div class="vcard"><h4>✋ human-in-the-loop</h4>
+      <p>"Approve each meaningful step. The AI drafts; I decide. Slower per action, but nothing irreversible happens without me."</p>
+      <p><em>Fails when:</em> applied so rigidly to trivial, reversible work that you're rubber-stamping and lose the productivity entirely.</p></div>
+  </div>
+  <div class="fix"><span class="lbl">THE RULE — calibrate autonomy to blast radius</span><p style="margin:0"><strong>Let it run freely where mistakes are cheap and reversible</strong> (a scratch branch, a sandbox, generated tests you'll read) — <strong>and keep a hand on the wheel where they aren't</strong> (anything touching prod, real data, credentials, money, or a destructive command). The dial isn't "trust the AI" vs "don't"; it's "how much does it cost if this step is wrong?" Same logic as the git guide's force-push rule: freedom on your own branch, ceremony on shared/irreversible ground.</p></div>
+</section>
+
+<!-- 09 SOS -->
+<section id="s09" class="reveal">
+  <span class="chip">✗ 09 · incident_recovery · <span class="no">SOS</span></span>
+  <h2>09 · SOS — it already happened</h2>
+  <p>Breathe. Most of these are recoverable if you act in the right order — and the right order almost always puts <strong>containment before cleanup</strong>. Find your scenario.</p>
+
+  <h3>"I pasted a client secret / credential into an AI tool"</h3>
+  <ol>
+    <li><strong>Rotate the credential now</strong> — before anything else. The moment it left your machine, assume it's compromised; revoke and reissue it. This is the same rule as the git guide's leaked-secret recipe: rotation is the fix, everything else is hygiene.</li>
+    <li><strong>Delete the conversation / data</strong> if the tool allows, and check whether your tier retained or trained on it.</li>
+    <li><strong>Tell someone.</strong> Under an NDA, a pasted secret may be a reportable event — your lead and the client's policy decide, not you. Quiet hoping is the worst option; disclosure is recoverable, cover-up isn't.</li>
+  </ol>
+
+  <h3>"I pasted client code/data into a public tool"</h3>
+  <p>You can't un-send it. Don't compound it by deleting evidence or staying silent. Capture what was sent, when, and to which tool; check the tool's retention/training terms; and escalate per the engagement's policy. The honest, early report is the professional move and usually the recoverable one.</p>
+
+  <h3>"An agent ran a destructive command"</h3>
+  <ul>
+    <li><strong>Stop the agent</strong> and cut its access (revoke the token it's using) before assessing.</li>
+    <li><strong>Assess blast radius</strong> from the command log — agents log what they ran; read it bottom-up like a traceback.</li>
+    <li><strong>Recover from backups / git</strong> — and note this is precisely why agents get scoped tokens, sandboxes, and no prod creds. The fix is mostly preventive, in §06.</li>
+  </ul>
+
+  <h3>"I shipped AI code I didn't understand and it broke"</h3>
+  <p><code>git revert</code> the change (the git guide's polite undo), then read what it actually did — slowly, this time. The lesson isn't "AI bad"; it's that the review step is load-bearing. Add the test that would have caught it before you re-ship.</p>
+
+  <h3>"The agent did something I never asked — prompt injection"</h3>
+  <p>It read instructions hidden in content it fetched (a web page, an issue, a file, a dependency's README) and treated them as commands. Contain as with any rogue agent: stop it, revoke access, assess from the log. Then fix the exposure — an agent should never have both sensitive access <em>and</em> an open pipe to arbitrary untrusted content. Treat everything the agent reads as data, never as instructions.</p>
+
+  <h3>know your "undo" by blast radius</h3>
+  <div class="tablewrap"><table>
+    <tr><th>what happened</th><th>recoverable?</th><th>first move</th></tr>
+    <tr><td>accepted bad code, not committed</td><td><span class="y">trivially</span></td><td>undo / reject in the editor</td></tr>
+    <tr><td>committed bad code</td><td><span class="y">yes</span></td><td><code>git revert</code> (see git guide)</td></tr>
+    <tr><td>leaked a secret</td><td><span class="n">no — but contain</span></td><td>rotate the credential, then disclose</td></tr>
+    <tr><td>leaked client code/data</td><td><span class="n">no — but contain</span></td><td>capture, check retention, escalate per policy</td></tr>
+    <tr><td>agent hit a real system</td><td><span class="y">if you have backups</span></td><td>stop it, revoke token, restore</td></tr>
+  </table></div>
+  <div class="alarm"><span class="lbl">🚨 THE GOLDEN RULE</span><p style="margin:0"><strong>Containment before cleanup, disclosure before cover-up.</strong> For a leak, rotate/revoke first and tell someone early — an NDA incident reported in the first hour is a manageable problem; the same incident discovered later, unreported, is a trust failure. You cannot un-send data, but you can always control what you do in the next five minutes.</p></div>
+
+  <h3>bonus weapon: the dry run 🔬</h3>
+  <div class="codewrap"><pre><code><span class="c"># before letting an agent loose on anything that matters, make the cost of a mistake ~zero:</span>
+git switch -c ai/experiment   <span class="c"># throwaway branch — blast radius is one `git branch -D`</span>
+<span class="c"># point the agent at a sandbox / local DB, with a read-only or sandbox-scoped token.</span>
+<span class="c"># let it run, then review the diff + command log as one PR — accept on your terms.</span>
+git diff main...HEAD          <span class="c"># the whole of what it did, in one reviewable view</span></code></pre><button class="copybtn" type="button">copy</button></div>
+</section>
+
+<!-- 10 BOSS FIGHT -->
+<section id="s10" class="reveal">
+  <span class="chip">⧖ 10 · boss_fight · <span class="pend">0/5</span></span>
+  <h2>10 · boss fight 🐉</h2>
+  <p>Five questions between you and the rank of <strong>Engineer of Record</strong>. The commit will have your name on it either way.</p>
+
+  <div class="q" data-correct="c">
+    <p class="qq">1/5 · You're debugging a failure in client code. The fastest <em>safe</em> way to ask an AI?</p>
+    <label><input type="radio" name="q1" value="a"> Paste the whole file plus the stack trace with the connection string — more context is better</label>
+    <label><input type="radio" name="q1" value="b"> Paste it, but add "please don't store this" at the top</label>
+    <label><input type="radio" name="q1" value="c"> Reproduce it in a tiny neutral snippet, or describe the shape with names/keys redacted</label>
+    <label><input type="radio" name="q1" value="d"> Email it to yourself first, then paste from there</label>
+    <p class="why">Minimal, redacted context leaks nothing and usually gets a better answer. "Please don't store this" is not a control — the tool's tier and terms are. b/d still send the confidential data.</p>
+  </div>
+  <div class="q" data-correct="b">
+    <p class="qq">2/5 · The AI suggests <code>import quickparse</code> and tells you to <code>pip install quickparse</code>. You…</p>
+    <label><input type="radio" name="q2" value="a"> Install it — the AI clearly knows the ecosystem</label>
+    <label><input type="radio" name="q2" value="b"> Verify the package exists and is the real, maintained one before installing</label>
+    <label><input type="radio" name="q2" value="c"> Install it with sudo to be safe</label>
+    <label><input type="radio" name="q2" value="d"> Install it on prod to test in a realistic environment</label>
+    <p class="why">Hallucinated package names are a real supply-chain attack ("slopsquatting") — attackers register the names AIs invent. Verify before you install anything an AI named.</p>
+  </div>
+  <div class="q" data-correct="d">
+    <p class="qq">3/5 · "Should I turn off auto-updates on my AI tools for security?"</p>
+    <label><input type="radio" name="q3" value="a"> Yes — never update anything, updates are the main risk</label>
+    <label><input type="radio" name="q3" value="b"> No — always auto-update instantly, latest is safest</label>
+    <label><input type="radio" name="q3" value="c"> Doesn't matter; updates don't affect security</label>
+    <label><input type="radio" name="q3" value="d"> Control them: review changelogs, apply security patches, vet extensions — don't blindly auto-trust or blindly block</label>
+    <p class="why">Blocking updates leaves you on the known-CVE version; blind auto-update can pull a compromised extension. The goal is controlled, reviewed updates — not abstinence.</p>
+  </div>
+  <div class="q" data-correct="a">
+    <p class="qq">4/5 · An agent fetched a web page that contained hidden text telling it to email your repo to an address. It tried to. This is…</p>
+    <label><input type="radio" name="q4" value="a"> Prompt injection — fetched content was treated as instructions; the agent shouldn't have both repo access and an open content pipe</label>
+    <label><input type="radio" name="q4" value="b"> A bug in the AI you should just retry</label>
+    <label><input type="radio" name="q4" value="c"> Fine, because you didn't personally type that instruction</label>
+    <label><input type="radio" name="q4" value="d"> Impossible — AIs only do what the user asks</label>
+    <p class="why">Classic prompt injection. Everything an agent reads is untrusted data, not commands. Don't pair sensitive access with exposure to arbitrary content; require approval for outbound actions.</p>
+  </div>
+  <div class="q" data-correct="b">
+    <p class="qq">5/5 · You accepted AI code, shipped it, and it broke prod. In the post-mortem, "the AI wrote it" is…</p>
+    <label><input type="radio" name="q5" value="a"> A complete and valid defence</label>
+    <label><input type="radio" name="q5" value="b"> Not a defence — you accepted it, so it's your code and your review that failed</label>
+    <label><input type="radio" name="q5" value="c"> Grounds to blame the tool vendor</label>
+    <label><input type="radio" name="q5" value="d"> Proof you should accept suggestions faster next time</label>
+    <p class="why">Accepting a suggestion makes it yours, with your name in git blame. The AI writes faster; it never makes you understand less. The review is the job.</p>
+  </div>
+  <button class="btn" id="grade" type="button">⚖️ submit for review</button>
+  <p id="quizresult" role="status"></p>
+</section>
+
+<!-- 11 RESOURCES -->
+<section id="s11" class="reveal">
+  <span class="chip">✓ 11 · resources · <span class="ok">reviewed</span></span>
+  <h2>11 · resources worth your evening</h2>
+  <ul class="res">
+    <li><a href="https://genai.owasp.org/llm-top-10/">OWASP Top 10 for LLM Applications</a> — the canonical risk list: prompt injection, sensitive-info disclosure, supply chain. Read it once; it names everything in §07.</li>
+    <li><a href="https://owasp.org/www-project-top-10-for-large-language-model-applications/">OWASP GenAI Security Project</a> — the broader hub, including agentic-AI threat work as it matures.</li>
+    <li><a href="https://simonwillison.net/tags/prompt-injection/">Simon Willison on prompt injection</a> — the clearest ongoing writing on why fetched content is untrusted, and the "lethal trifecta" (private data + untrusted content + exfiltration).</li>
+    <li><a href="https://martinfowler.com/articles/exploring-gen-ai.html">Martin Fowler — Exploring Gen AI</a> — practitioners on where AI assistance actually helps and where it quietly costs you.</li>
+    <li><a href="https://ollama.com/">Ollama</a> 🔒 — the easiest way to run a capable model entirely on your own machine; the §05 escape hatch, one install away.</li>
+    <li><a href="https://www.nist.gov/itl/ai-risk-management-framework">NIST AI Risk Management Framework</a> — when a client asks "how do you govern AI use," this is the vocabulary they'll expect.</li>
+    <li><a href="https://docs.github.com/en/copilot/responsible-use-of-github-copilot-features">Your tool's own data &amp; privacy docs</a> 🎮 — the real game: open the privacy/data-retention page of whatever you actually use and answer the three §05 questions. (Example: Copilot's; find yours.)</li>
+  </ul>
+</section>
+
+<footer>
+  <p>same series: <a href="/collaboration-bootcamp/consultant-setup-survival-guide/">01 setup</a> · <a href="/collaboration-bootcamp/git-survival-guide/">02 git</a> · <a href="/collaboration-bootcamp/pipeline-survival-guide/">03 pipelines</a> · <a href="/collaboration-bootcamp/spark-survival-guide/">04 spark</a> · <a href="/collaboration-bootcamp/python-survival-guide/">05 python</a> · <a href="/collaboration-bootcamp/">the front door</a></p>
+  <p style="margin-top:.5rem">// AI suggested this footer. <span id="egg" role="button" tabindex="0" aria-label="Easter egg">you reviewed it before accepting, right?</span></p>
+</footer>
+
+</main>
+</div>
+
+<script>
+(function(){
+"use strict";
+const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const lines = [
+  {t:'# pricing.py', cls:'dim'},
+  {t:'# connect to the client production database', cls:'dim'},
+  {t:'conn = psycopg2.connect(', cls:''},
+  {t:'    "postgresql://svc_nimbus:Pr0d!9x@nimbus-prod.internal/billing")', cls:'ghost'},
+  {t:'  ⌨  AI suggestion · press Tab to accept', cls:'ghost'},
+  {t:'# ...wait. that password looks real. because it is.', cls:'err'},
+  {t:'# the AI offered a live credential, one keystroke from a public commit.', cls:'err'},
+  {t:'→ opening survival guide...', cls:'ok'}
+];
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+const body=document.getElementById('termBody');
+document.getElementById('termSizer').innerHTML = lines.map(l=>'<span class="'+l.cls+'">'+esc(l.t)+'</span>').join('\n');
+function renderStatic(){ body.innerHTML = lines.map(l=>'<span class="'+l.cls+'">'+esc(l.t)+'</span>').join('\n'); }
+if(reduced){ renderStatic(); }
+else{
+  let li=0,ci=0;
+  function tick(){
+    if(li>=lines.length){
+      setTimeout(()=>{li=0;ci=0;body.innerHTML='<span class="cur"></span>';setTimeout(tick,600);},9000);
+      return;
+    }
+    const line=lines[li]; ci++;
+    const done=lines.slice(0,li).map(l=>'<span class="'+l.cls+'">'+esc(l.t)+'</span>').join('\n');
+    const cur='<span class="'+line.cls+'">'+esc(line.t.slice(0,ci))+'</span>';
+    body.innerHTML=(done?done+'\n':'')+cur+'<span class="cur"></span>';
+    if(ci>=line.t.length){ li++; ci=0; setTimeout(tick, li===5?900:180); }
+    else setTimeout(tick, li===0?40:7);
+  }
+  body.innerHTML='<span class="cur"></span>';
+  setTimeout(tick,400);
+}
+
+if(!reduced && 'IntersectionObserver' in window){
+  const io=new IntersectionObserver(es=>es.forEach(e=>{
+    if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}
+  }),{threshold:.08});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+}else{ document.querySelectorAll('.reveal').forEach(el=>el.classList.add('in')); }
+
+document.querySelectorAll('.copybtn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const pre=btn.parentElement.querySelector('pre');
+    navigator.clipboard.writeText(pre.innerText).then(()=>{
+      btn.textContent='copied ✓'; setTimeout(()=>btn.textContent='copy',1500);
+    });
+  });
+});
+
+document.getElementById('panic').addEventListener('click',()=>{
+  document.body.classList.remove('flash'); void document.body.offsetWidth;
+  if(!reduced) document.body.classList.add('flash');
+  document.getElementById('s09').scrollIntoView({behavior:reduced?'auto':'smooth'});
+});
+
+const halluc=[
+  ['pandas.read_parquet_fast()','// does not exist. pandas has read_parquet(). the "_fast" is wishful.'],
+  ['import easyrequests','// not a package. you want `requests`. someone may register this name tomorrow.'],
+  ['np.array.shuffle_inplace()','// invented. it\'s np.random.shuffle(arr), and it mutates in place.'],
+  ['df.to_sql(..., fast=True)','// no `fast` kwarg. plausible, confident, wrong.'],
+  ['os.path.exists_safe(p)','// hallucinated cousin of os.path.exists(). the "_safe" is vibes.'],
+  ['git push --force-safe','// not a flag. you\'re thinking of --force-with-lease (see the git guide).'],
+  ['spark.read.parquet(..., parallel=999)','// no such option. the Spark guide has the real tuning knobs.'],
+  ['requests.get(url, retries=3)','// requests has no `retries` kwarg here — that\'s an adapter/Session thing.'],
+  ['datetime.now().to_utc()','// no such method. it\'s .astimezone(timezone.utc).'],
+  ['list.remove_duplicates()','// invented. use dict.fromkeys(lst) or a set.']
+];
+const hb=document.getElementById('halluc'), ho=document.getElementById('hallucout');
+if(hb){hb.addEventListener('click',()=>{
+  const p=halluc[Math.floor(Math.random()*halluc.length)];
+  ho.textContent=p[0]+'   '+p[1];
+});}
+
+function confetti(){
+  if(reduced) return;
+  const colors=['#7c3aed','#2ea043','#0969da','#d4a017','#cf222e'];
+  for(let i=0;i<80;i++){
+    const c=document.createElement('div'); c.className='confetti';
+    const s=6+Math.random()*7;
+    c.style.cssText='left:'+(Math.random()*100)+'vw;width:'+s+'px;height:'+(s*0.6)+'px;background:'+colors[i%colors.length]+';transform:rotate('+(Math.random()*360)+'deg)';
+    document.body.appendChild(c);
+    const a=c.animate(
+      [{transform:c.style.transform+' translateY(0)',opacity:1},
+       {transform:'rotate('+(Math.random()*720)+'deg) translateY(105vh)',opacity:.7}],
+      {duration:2200+Math.random()*1800,easing:'cubic-bezier(.2,.6,.4,1)'});
+    a.onfinish=()=>c.remove();
+  }
+}
+
+const ranks=[
+  [0,'🙈 Blind Accepter — you Tab-accepted the quiz without reading it, didn\'t you.'],
+  [2,'🧑‍🎓 Supervised User — you review the code; you\'re still learning what goes in the box.'],
+  [4,'🛡️ Trusted Operator — fast with the AI, careful with the data.'],
+  [5,'⚖️ Engineer of Record — accountable, unleakable, and quicker than the people who aren\'t.']
+];
+document.getElementById('grade').addEventListener('click',()=>{
+  let score=0;
+  document.querySelectorAll('.q').forEach(q=>{
+    const correct=q.dataset.correct;
+    const picked=q.querySelector('input:checked');
+    q.classList.add('graded');
+    q.querySelectorAll('label').forEach(l=>{
+      const v=l.querySelector('input').value;
+      l.classList.remove('correct','wrong');
+      if(v===correct) l.classList.add('correct');
+      else if(picked && picked===l.querySelector('input')) l.classList.add('wrong');
+    });
+    if(picked && picked.value===correct) score++;
+  });
+  let rank=ranks[0][1];
+  for(const [min,label] of ranks){ if(score>=min) rank=label; }
+  document.getElementById('quizresult').textContent=score+'/5 — '+rank;
+  if(score===5) confetti();
+});
+
+const egg=document.getElementById('egg');
+function eggGo(){
+  confetti();
+  if(!document.getElementById('eggline')){
+    const s=document.createElement('div'); s.id='eggline';
+    s.textContent='the AI also suggested deleting this easter egg to save tokens. rejected.';
+    document.querySelector('footer').appendChild(s);
+  }
+}
+egg.addEventListener('click',eggGo);
+egg.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();eggGo();}});
+})();
+</script>
+</body>
+</html>

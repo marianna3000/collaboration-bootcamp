@@ -16,7 +16,7 @@
   --red:#cf222e; --red-dim:#fdecee;
   --yellow:#d4a017;
   --code-bg:#16181d; --code-ink:#e8eaed; --code-comment:#7d8590;
-  --c-setup:#0e7c86; --c-git:#f05133; --c-pipe:#1f6feb; --c-spark:#e25a1c; --c-python:#4b8bbe;
+  --c-setup:#0e7c86; --c-git:#f05133; --c-pipe:#1f6feb; --c-spark:#e25a1c; --c-python:#4b8bbe; --c-ai:#7c3aed;
   --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
   --serif:'Source Serif 4',Georgia,serif;
 }
@@ -66,9 +66,10 @@ p{margin:0 0 .9rem;max-width:70ch}
 .badge.live{background:var(--green-dim);color:var(--green);border:1px solid var(--green)}
 .badge.queue{background:#fff8e6;color:#946f00;border:1px solid var(--yellow)}
 .badge.planned{background:var(--paper-dim);color:var(--ink-soft);border:1px solid var(--rail)}
+.badge.wip{background:#fff4e6;color:#9a3412;border:1px solid #ea580c}
 .c-setup{border-left-color:var(--c-setup)} .c-git{border-left-color:var(--c-git)}
 .c-pipe{border-left-color:var(--c-pipe)} .c-spark{border-left-color:var(--c-spark)}
-.c-python{border-left-color:var(--c-python)}
+.c-python{border-left-color:var(--c-python)} .c-ai{border-left-color:var(--c-ai)}
 
 /* track */
 .track{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;font-family:var(--mono);font-size:.8rem;margin:0 0 1rem}
@@ -120,7 +121,7 @@ footer{border-top:1px solid var(--rail);margin-top:2.6rem;padding-top:1.4rem;fon
     <a href="/collaboration-bootcamp/pipeline-survival-guide/">03 pipelines</a><span class="arr">→</span>
     <a href="/collaboration-bootcamp/spark-survival-guide/">04 spark</a>
   </div>
-  <p>Each one stands alone — but they link forward: the setup guide's inner loop becomes the pipeline guide's outer loop, and the pipeline guide's testing chapter is what the Spark guide will assume you know. <strong>05 Python idioms</strong> is a foundations companion — it pairs with setup, so read it early if the language itself is new to you.</p>
+  <p>Each one stands alone — but they link forward: the setup guide's inner loop becomes the pipeline guide's outer loop, and the pipeline guide's testing chapter is what the Spark guide will assume you know. <strong>05 Python idioms</strong> is a foundations companion — it pairs with setup, so read it early if the language itself is new to you. <strong>06 AI</strong> cuts across all of them: how to use AI tools on this work without leaking the client.</p>
 </section>
 
 <section class="reveal" id="modules">
@@ -156,6 +157,12 @@ footer{border-top:1px solid var(--rail);margin-top:2.6rem;padding-top:1.4rem;fon
       <p class="pan">For when: the code works but a reviewer winced.</p>
       <div class="links"><a href="/collaboration-bootcamp/python-survival-guide/">read →</a><a class="sos" href="/collaboration-bootcamp/python-survival-guide/#s09">🔥 traceback</a></div>
     </div>
+    <div class="card shipped c-ai">
+      <h3><span class="ord" style="font-family:var(--mono);opacity:.55;font-weight:400">06</span> ai-survival-guide <span class="badge wip">🚧 work in progress</span></h3>
+      <p class="desc">The AI Survival Guide — using AI tools without leaking the client. Review before you accept, keep confidential data out of the box, keep the agent on a leash.</p>
+      <p class="pan">For when: the autocomplete just suggested a real password. (Draft — feedback welcome.)</p>
+      <div class="links"><a href="/collaboration-bootcamp/ai-survival-guide/">read →</a><a class="sos" href="/collaboration-bootcamp/ai-survival-guide/#s09">🚨 leaked</a></div>
+    </div>
   </div>
 </section>
 
@@ -167,6 +174,7 @@ footer{border-top:1px solid var(--rail);margin-top:2.6rem;padding-top:1.4rem;fon
     <a class="routerow" href="/collaboration-bootcamp/pipeline-survival-guide/#s10"><span class="sym">"The pipeline is red, the test is flaky, the release is today."</span><span class="dest">🔴 pipeline SOS →</span></a>
     <a class="routerow" href="/collaboration-bootcamp/spark-survival-guide/#s09"><span class="sym">"The Spark job OOMed at 3am."</span><span class="dest">💀 spark SOS →</span></a>
     <a class="routerow" href="/collaboration-bootcamp/python-survival-guide/#s09"><span class="sym">"Traceback (most recent call last) and I can't read it."</span><span class="dest">🔥 python SOS →</span></a>
+    <a class="routerow" href="/collaboration-bootcamp/ai-survival-guide/#s09"><span class="sym">"I pasted a client secret into an AI tool."</span><span class="dest">🚨 ai SOS →</span></a>
   </div>
 </section>
 
@@ -193,7 +201,8 @@ const lines = [
   {t:'pipeline   pipeline-survival-guide      [live]   🔴 PIPELINE RED', cls:'ok'},
   {t:'spark      spark-survival-guide         [live]   💀 DRIVER LOST', cls:'ok'},
   {t:'python     python-survival-guide        [live]   🔥 TRACEBACK', cls:'ok'},
-  {t:'5 modules live · 0 panics unhandled · pick yours below', cls:'dim'}
+  {t:'ai         ai-survival-guide            [WIP]    🚨 LEAKED', cls:'warn'},
+  {t:'5 modules live · 1 in progress · 0 panics unhandled · pick yours below', cls:'dim'}
 ];
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 const body=document.getElementById('termBody');
