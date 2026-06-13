@@ -451,6 +451,7 @@ $ git clone ... &amp;&amp; cd nimbus-pricing &amp;&amp; mise install &amp;&amp; 
       <li><strong>Prefer composition to inheritance, and immutable to mutable.</strong> Both make code easier to reason about, test, and scale. A corollary your on-call self endorses: never operate something you didn't build — if it isn't your code, it should be a managed service.</li>
       <li><strong>Exit codes and streams are the API of your scripts.</strong> Output to stdout, logs to stderr, exit 0 on success, non-zero on failure — schedulers and CI act on these, and "it failed silently with exit 0" is a genuinely embarrassing incident review.</li>
     </ul>
+    <p>These are the cross-language engineering habits. For the Python-<em>specific</em> craft — comprehensions, dataclasses, the data model, EAFP, the idioms that make code read like Python — that's its own module: <a href="/collaboration-bootcamp/python-survival-guide/">the Python Survival Guide</a>.</p>
   </div>
 </section>
 
@@ -918,7 +919,7 @@ $ git stash pop                     <span class="cm"># carry on</span></code></p
 
 <footer>
   <p>survival guide series · consultant edition · built by hand, reproducible by script</p>
-  <p>see also: the <a href="/collaboration-bootcamp/git-survival-guide/"><strong>Git Survival Guide</strong></a> (<code>git log --survival-guide</code>) — same series, different panic.</p>
+  <p>same series: <a href="/collaboration-bootcamp/git-survival-guide/">02 git</a> · <a href="/collaboration-bootcamp/pipeline-survival-guide/">03 pipelines</a> · <a href="/collaboration-bootcamp/spark-survival-guide/">04 spark</a> · <a href="/collaboration-bootcamp/python-survival-guide/">05 python</a> · <a href="/collaboration-bootcamp/">the front door</a></p>
   <p>this page exited with code <span id="exitcode" role="button" tabindex="0" aria-label="Easter egg">0</span></p>
   <p id="egg-msg">✓ deployed from a laptop that could be replaced in 30 minutes. that's the whole religion.</p>
 </footer>
