@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>spark-survival-guide — PySpark for people who get paged</title>
+<meta name="description" content="A 3am reference for PySpark: lazy DAGs, shuffles, skew, OOM recovery, and why collect() was a mistake. For when the driver has left the chat.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1b1f23; --ink-soft:#4b5258;
+  --paper:#ffffff; --paper-dim:#f6f7f8; --rail:#d4d8dc;
+  --accent:#e25a1c; --accent-dim:#fdeee5;
+  --green:#2ea043; --green-dim:#e9f7ec;
+  --red:#cf222e; --red-dim:#fdecee;
+  --blue:#0969da; --yellow:#d4a017;
+  --code-bg:#16181d; --code-ink:#e8eaed;
+  --code-comment:#7d8590; --code-accent:#ffa657;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --serif:'Source Serif 4',Georgia,serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{font-family:var(--serif);color:var(--ink);background:var(--paper);line-height:1.65;font-size:17px}
+h1,h2,h3,h4,.term,.chip,.badge,nav,th,figcaption,footer,.poster,.q,.btn,.dagnode{font-family:var(--mono)}
+a{color:var(--blue)}
+a:focus-visible,button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+
+.layout{display:grid;grid-template-columns:300px 1fr;gap:2.2rem;max-width:1200px;margin:0 auto;padding:2.2rem 1.2rem 4rem}
+main{min-width:0}
+@media (max-width:920px){.layout{grid-template-columns:1fr}aside.dag{position:static;max-height:none}}
+
+h1{font-size:1.45rem;margin:1.2rem 0 .4rem;letter-spacing:-.02em}
+.subtitle{color:var(--ink-soft);font-style:italic;margin-bottom:1.6rem}
+h2{font-size:1.12rem;margin:.4rem 0 .9rem}
+h3{font-size:.95rem;margin:1.4rem 0 .6rem}
+section{padding-top:1.8rem;margin-top:1.2rem;border-top:1px dashed var(--rail)}
+p{margin:0 0 .9rem;max-width:70ch}
+ul,ol{margin:0 0 1rem 1.3rem;max-width:70ch}
+li{margin-bottom:.35rem}
+code{font-family:var(--mono);font-size:.86em;background:var(--paper-dim);border:1px solid var(--rail);border-radius:4px;padding:.06em .3em}
+
+/* ── sidebar: the DAG ── */
+aside.dag{position:sticky;top:1.2rem;align-self:start;max-height:calc(100vh - 2.4rem);overflow:auto;
+  font-size:.74rem;border:1px solid var(--rail);border-radius:10px;background:var(--paper-dim);padding:1rem .9rem}
+aside.dag .dagtitle{font-weight:600;margin-bottom:.7rem;color:var(--ink-soft);letter-spacing:.03em}
+.dagnode{display:block;position:relative;padding:.34rem .5rem .34rem 1.5rem;margin-left:.55rem;border-left:2px solid var(--rail);
+  text-decoration:none;color:var(--ink);border-radius:0 6px 6px 0}
+.dagnode:hover{background:var(--accent-dim)}
+.dagnode::before{content:'';position:absolute;left:-6px;top:.78em;width:10px;height:10px;border-radius:50%;
+  background:var(--paper);border:2px solid var(--rail)}
+.dagnode.ok::before{background:var(--green);border-color:var(--green)}
+.dagnode.fail::before{background:var(--red);border-color:var(--red)}
+.dagnode.pend::before{background:var(--yellow);border-color:var(--yellow)}
+.dagnode .meta{display:block;color:var(--ink-soft);font-size:.66rem}
+.dagkey{margin-top:.8rem;color:var(--ink-soft);font-size:.66rem;line-height:1.9}
+.dagkey i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:.35rem}
+
+/* ── stage chips ── */
+.chip{display:inline-flex;gap:.7rem;flex-wrap:wrap;align-items:baseline;font-size:.72rem;color:var(--ink-soft);
+  border:1px solid var(--rail);border-radius:99px;padding:.22rem .8rem;margin-bottom:.7rem;background:var(--paper-dim)}
+.chip .ok{color:var(--green)} .chip .fail{color:var(--red)} .chip .pend{color:#946f00}
+
+/* ── hero terminal ── */
+.term{background:var(--code-bg);color:var(--code-ink);border-radius:10px;overflow:hidden;
+  box-shadow:0 12px 30px rgba(27,31,35,.25);font-size:.8rem;margin-bottom:.4rem}
+.term-bar{background:#23262d;padding:.5rem .8rem;display:flex;gap:.45rem;align-items:center;color:#9aa1a9}
+.term-bar i{width:.75rem;height:.75rem;border-radius:50%;display:inline-block}
+.term-bar .r{background:#ff5f56}.term-bar .y{background:#ffbd2e}.term-bar .g{background:#27c93f}
+.term-bar span{margin-left:.5rem;font-size:.72rem}
+.term-body{position:relative;padding:1rem 1.1rem 1.2rem}
+.term-sizer{visibility:hidden;white-space:pre-wrap}
+.term-anim{position:absolute;top:1rem;left:1.1rem;right:1.1rem;bottom:1.2rem;white-space:pre-wrap}
+.term .ok{color:#3fb950}.term .err{color:#ff7b72}.term .dim{color:var(--code-comment)}
+.term .cur{display:inline-block;width:.55em;height:1.05em;background:var(--code-ink);vertical-align:text-bottom;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* ── code blocks ── */
+.codewrap{position:relative;max-width:48rem;margin:0 0 1rem}
+pre{background:var(--code-bg);color:var(--code-ink);font-family:var(--mono);font-size:.78rem;line-height:1.6;
+  border-radius:8px;padding:1rem 1.1rem;overflow-x:auto;white-space:pre}
+pre code{background:none;border:none;padding:0;border-radius:0;font-size:inherit;color:inherit}
+pre .c{color:var(--code-comment)} pre .a{color:var(--code-accent)} pre .o{color:#7ee787}
+.copybtn{position:absolute;top:.5rem;right:.5rem;font-family:var(--mono);font-size:.66rem;color:#9aa1a9;
+  background:#23262d;border:1px solid #3a3f47;border-radius:6px;padding:.25rem .6rem;cursor:pointer}
+.copybtn:hover{color:var(--code-ink);border-color:#9aa1a9}
+
+/* ── tables ── */
+.tablewrap{overflow-x:auto;max-width:48rem;margin:0 0 1rem}
+table{border-collapse:collapse;font-size:.82rem;min-width:100%}
+th{font-size:.72rem;text-align:left;letter-spacing:.03em;background:var(--paper-dim)}
+th,td{border:1px solid var(--rail);padding:.45rem .65rem;vertical-align:top}
+td .y{color:var(--green);font-weight:600} td .n{color:var(--red);font-weight:600}
+
+/* ── callouts ── */
+.note,.fix,.alarm{border-radius:8px;padding:.85rem 1rem;margin:0 0 1rem;font-size:.95rem;max-width:70ch}
+.note{background:#e8f0fe;border-left:4px solid var(--blue)}
+.fix{background:var(--green-dim);border-left:4px solid var(--green)}
+.alarm{background:var(--red-dim);border-left:4px solid var(--red)}
+.note .lbl,.fix .lbl,.alarm .lbl{font-family:var(--mono);font-size:.72rem;display:block;margin-bottom:.3rem;letter-spacing:.05em;font-weight:600}
+.note .lbl{color:var(--blue)} .fix .lbl{color:var(--green)} .alarm .lbl{color:var(--red)}
+
+/* ── figures ── */
+figure{margin:0 0 1.2rem;max-width:48rem}
+figure svg{width:100%;height:auto;display:block;border:1px solid var(--rail);border-radius:8px;background:var(--paper)}
+figcaption{font-size:.72rem;color:var(--ink-soft);margin-top:.4rem;font-style:normal}
+
+/* ── wanted posters ── */
+.posters{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:0 0 1rem}
+@media (max-width:700px){.posters{grid-template-columns:1fr}}
+.poster{border:1px solid var(--rail);border-radius:8px;background:var(--paper-dim);padding:.9rem 1rem;font-size:.8rem;
+  box-shadow:2px 3px 0 rgba(27,31,35,.08);transition:transform .15s}
+.poster:hover{transform:rotate(-.6deg) translateY(-2px)}
+@media (prefers-reduced-motion:reduce){.poster,.poster:hover{transition:none;transform:none}}
+.poster .star{font-size:.62rem;color:var(--accent);letter-spacing:.2em;text-align:center;display:block}
+.poster .mug{font-size:1.6rem;text-align:center;display:block;margin:.2rem 0}
+.poster h4{text-align:center;margin:.1rem 0 .5rem;font-size:.88rem}
+.poster .crime{font-family:var(--serif);font-size:.88rem;margin-bottom:.5rem}
+.poster .bounty{background:var(--green-dim);border:1px solid var(--green);border-radius:6px;padding:.4rem .6rem;font-size:.74rem}
+.poster .bounty b{color:var(--green);display:block;font-size:.66rem;letter-spacing:.05em}
+
+/* ── versus ── */
+.versus{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:0 0 1rem;max-width:48rem}
+@media (max-width:700px){.versus{grid-template-columns:1fr}}
+.versus .vcard{border:1px solid var(--rail);border-radius:8px;padding:.9rem 1rem;font-size:.85rem;background:var(--paper-dim)}
+.versus .vcard h4{margin:0 0 .5rem}
+
+/* ── quiz ── */
+.q{border:1px solid var(--rail);border-radius:8px;padding:.9rem 1rem;margin:0 0 1rem;font-size:.86rem;max-width:48rem;background:var(--paper-dim)}
+.q .qq{font-weight:600;margin-bottom:.6rem}
+.q label{display:block;padding:.35rem .6rem;border-radius:6px;cursor:pointer;margin-bottom:.25rem;border:1px solid transparent;font-family:var(--serif);font-size:.92rem}
+.q label:hover{background:var(--accent-dim)}
+.q label.correct{background:var(--green-dim);border-color:var(--green)}
+.q label.wrong{background:var(--red-dim);border-color:var(--red)}
+.q .why{display:none;font-size:.82rem;color:var(--ink-soft);margin-top:.5rem;font-family:var(--serif)}
+.q.graded .why{display:block}
+.btn{font-size:.8rem;border:1px solid var(--ink);background:var(--paper);color:var(--ink);border-radius:6px;
+  padding:.5rem 1rem;cursor:pointer}
+.btn:hover{background:var(--paper-dim)}
+#quizresult{font-family:var(--mono);font-size:.9rem;margin-top:.8rem;font-weight:600}
+
+/* ── resources ── */
+.res li{margin-bottom:.55rem}
+
+/* ── panic button ── */
+#panic{position:fixed;right:1.2rem;bottom:1.2rem;z-index:50;font-family:var(--mono);font-size:.8rem;font-weight:600;
+  background:var(--red);color:#fff;border:none;border-radius:99px;padding:.7rem 1.2rem;cursor:pointer;
+  box-shadow:0 8px 20px rgba(207,34,46,.4);animation:pulse 2s infinite}
+#panic:hover{animation:shake .3s infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+@keyframes shake{0%,100%{transform:rotate(0)}25%{transform:rotate(-2deg)}75%{transform:rotate(2deg)}}
+@media (prefers-reduced-motion:reduce){#panic{animation:none}#panic:hover{animation:none}}
+body.flash{animation:redflash .5s}
+@keyframes redflash{0%{background:var(--red-dim)}100%{background:var(--paper)}}
+
+footer{border-top:1px solid var(--rail);margin-top:2.6rem;padding-top:1.4rem;font-size:.76rem;color:var(--ink-soft);font-family:var(--mono)}
+#egg{cursor:pointer;color:var(--green);font-weight:600}
+.confetti{position:fixed;top:-12px;z-index:99;pointer-events:none;border-radius:2px}
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .5s,transform .5s}
+.reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
+</style>
+</head>
+<body>
+
+<button id="panic" type="button" aria-label="Panic: jump to disaster recovery">💀 DRIVER LOST</button>
+
+<div class="layout">
+
+<aside class="dag" aria-label="Table of contents, styled as a Spark DAG">
+  <span class="dagtitle">DAG — nightly_quotes · job 42</span>
+  <nav>
+    <a class="dagnode ok" href="#s00">stage 00 · why_this_exists<span class="meta">8/8 tasks · 0.4 s</span></a>
+    <a class="dagnode ok" href="#s01">stage 01 · the_daily_loop<span class="meta">8/8 tasks · 1.2 s</span></a>
+    <a class="dagnode ok" href="#s02">stage 02 · what_spark_is<span class="meta">8/8 tasks · 2.0 s</span></a>
+    <a class="dagnode ok" href="#s03">stage 03 · mental_model<span class="meta">200/200 tasks · 4.1 s</span></a>
+    <a class="dagnode ok" href="#s04">stage 04 · core_reference<span class="meta">200/200 tasks · 6.3 s</span></a>
+    <a class="dagnode ok" href="#s05">stage 05 · ui_rosetta<span class="meta">8/8 tasks · 1.7 s</span></a>
+    <a class="dagnode ok" href="#s06">stage 06 · configs_that_pay_rent<span class="meta">8/8 tasks · 2.2 s</span></a>
+    <a class="dagnode fail" href="#s07">stage 07 · the_most_wanted<span class="meta">173/200 tasks · 8 at large</span></a>
+    <a class="dagnode ok" href="#s08">stage 08 · the_eternal_debate<span class="meta">2/2 tasks · 60 s</span></a>
+    <a class="dagnode fail" href="#s09">stage 09 · sos_driver_lost<span class="meta">ExecutorLostFailure · ∞</span></a>
+    <a class="dagnode pend" href="#s10">stage 10 · boss_fight<span class="meta">0/5 tasks · awaiting you</span></a>
+    <a class="dagnode ok" href="#s11">stage 11 · resources<span class="meta">cached · MEMORY_AND_DISK</span></a>
+  </nav>
+  <div class="dagkey">
+    <i style="background:var(--green)"></i>succeeded&nbsp;&nbsp;
+    <i style="background:var(--red)"></i>failed&nbsp;&nbsp;
+    <i style="background:var(--yellow)"></i>pending
+  </div>
+</aside>
+
+<main>
+
+<div class="term" role="img" aria-label="Animated terminal: a spark-submit job stalls on stage 7, loses an executor, and the driver leaves the chat.">
+  <div class="term-bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>spark-submit — nightly_quotes.py — 80×24</span></div>
+  <div class="term-body"><div class="term-sizer" id="termSizer" aria-hidden="true"></div><div class="term-anim" id="termBody" aria-hidden="true"></div></div>
+</div>
+
+<h1>spark-survival-guide</h1>
+<p class="subtitle">PySpark for people who get paged. Lazy DAGs, shuffles, skew — and why <span style="font-family:var(--mono);font-style:normal">collect()</span> was a mistake.</p>
+
+<!-- ======================= 00 WHY ======================= -->
+<section id="s00" class="reveal">
+  <span class="chip">stage 00/11 · why_this_exists · <span class="ok">8/8 tasks</span> · 0.4 s</span>
+  <h2>00 · why this page exists</h2>
+  <p>By now you have a <a href="/collaboration-bootcamp/consultant-setup-survival-guide/">reproducible machine</a>, a <a href="/collaboration-bootcamp/git-survival-guide/">history you can't lose</a>, and a <a href="/collaboration-bootcamp/pipeline-survival-guide/">pipeline that catches your optimism</a>. This module is for the day the data outgrows the machine: one process becomes a cluster, and your bug reports start containing the word <em>executor</em>.</p>
+  <p>This page will not teach you distributed computing by itself; it is the reference you open when the job that ran fine for six months suddenly takes four hours, and a map of the mistakes everyone makes between "it's just pandas with different syntax" (it is not) and reading a query plan without flinching.</p>
+  <p>It is written <strong>vendor-neutral</strong>: everything here is plain PySpark and works on Databricks, EMR, Dataproc, or your laptop. Where Databricks reality differs, you'll see a labelled note — because most of our clusters live there, but the concepts must not.</p>
+</section>
+
+<!-- ======================= 01 LOOP ======================= -->
+<section id="s01" class="reveal">
+  <span class="chip">stage 01/11 · the_daily_loop · <span class="ok">8/8 tasks</span> · 1.2 s</span>
+  <h2>01 · day zero: the loop</h2>
+  <p>Strip away the cluster and every PySpark day is the same loop: build lazily, peek cheaply, run small, then scale. The whole art is keeping steps 2–5 fast on a sample so step 6 doesn't surprise you at full size.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 120" role="img" aria-label="The daily loop as a chain of pills: session, read, transform lazily, peek at the plan, test on a sample, run full and write, watch the Spark UI, with a dashed repeat arrow back to the start.">
+      <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#4b5258"/></marker></defs>
+      <g font-family="IBM Plex Mono, monospace" font-size="11">
+        <rect x="10" y="34" width="84" height="30" rx="15" fill="#fdeee5" stroke="#e25a1c"/><text x="52" y="53" text-anchor="middle" fill="#1b1f23">session</text>
+        <rect x="112" y="34" width="70" height="30" rx="15" fill="#fdeee5" stroke="#e25a1c"/><text x="147" y="53" text-anchor="middle" fill="#1b1f23">read</text>
+        <rect x="200" y="34" width="120" height="30" rx="15" fill="#fdeee5" stroke="#e25a1c"/><text x="260" y="53" text-anchor="middle" fill="#1b1f23">transform·lazy</text>
+        <rect x="338" y="34" width="100" height="30" rx="15" fill="#fff" stroke="#0969da"/><text x="388" y="53" text-anchor="middle" fill="#1b1f23">explain()</text>
+        <rect x="456" y="34" width="110" height="30" rx="15" fill="#fff" stroke="#0969da"/><text x="511" y="53" text-anchor="middle" fill="#1b1f23">run sample</text>
+        <rect x="584" y="34" width="100" height="30" rx="15" fill="#e9f7ec" stroke="#2ea043"/><text x="634" y="53" text-anchor="middle" fill="#1b1f23">run+write</text>
+        <line x1="94" y1="49" x2="110" y2="49" stroke="#4b5258" marker-end="url(#arr)"/>
+        <line x1="182" y1="49" x2="198" y2="49" stroke="#4b5258" marker-end="url(#arr)"/>
+        <line x1="320" y1="49" x2="336" y2="49" stroke="#4b5258" marker-end="url(#arr)"/>
+        <line x1="438" y1="49" x2="454" y2="49" stroke="#4b5258" marker-end="url(#arr)"/>
+        <line x1="566" y1="49" x2="582" y2="49" stroke="#4b5258" marker-end="url(#arr)"/>
+        <path d="M634 64 V92 H52 V66" fill="none" stroke="#4b5258" stroke-dasharray="4 4" marker-end="url(#arr)"/>
+        <text x="343" y="106" text-anchor="middle" fill="#4b5258" font-size="10">repeat — and watch the Spark UI while it runs, not after it dies</text>
+      </g>
+    </svg>
+    <figcaption>fig 0 — the daily loop. Everything left of run+write is cheap; everything inside run+write is where the money goes.</figcaption>
+  </figure>
+
+  <div class="codewrap"><pre><code><span class="c"># the loop, as a session — Nimbus Freight nightly quote pricing</span>
+from pyspark.sql import SparkSession, functions as F
+
+spark = SparkSession.builder.appName("nightly_quotes").getOrCreate()
+
+<span class="c"># reading defines the data; it does not load it. nothing has run yet.</span>
+shipments = spark.read.parquet("s3://nimbus-lake/shipments/")   <span class="c"># 2.1B rows</span>
+ports     = spark.read.parquet("s3://nimbus-lake/dim_ports/")   <span class="c"># 4,800 rows</span>
+
+<span class="c"># every line below is LAZY — it grows the plan, runs nothing</span>
+priced = (shipments
+    .where(F.col("status") == "QUOTED")
+    .join(F.broadcast(ports), "port_id")    <span class="c"># broadcast = no shuffle (ports is tiny)</span>
+    .withColumn("surcharge_eur", F.col("value_eur") * F.col("surcharge_rate"))
+    .groupBy("region")                      <span class="c"># this one WILL shuffle</span>
+    .agg(F.sum("surcharge_eur").alias("total_surcharge")))
+
+<span class="c"># read the plan BEFORE you pay for it</span>
+priced.explain("formatted")
+
+<span class="c"># peek: runs a tiny slice, not the world</span>
+priced.limit(20).show()
+
+<span class="c"># THE action — this is the line that actually runs everything above</span>
+(priced.write
+    .mode("overwrite")
+    .parquet("s3://nimbus-lake/marts/surcharge_by_region/"))</code></pre><button class="copybtn" type="button">copy</button></div>
+
+  <div class="note"><span class="lbl">IF YOU ONLY REMEMBER THREE THINGS</span>
+  <p style="margin:0">① Nothing runs until an <strong>action</strong> — your "fast" code is fast because it did nothing. ② The cost of a job lives in its <strong>shuffles</strong> — know which lines cause them. ③ <strong>Never <code>collect()</code> anything you haven't counted first</strong> — the driver is one machine, and it is not a big one.</p></div>
+</section>
+
+<!-- ======================= 02 WHAT ======================= -->
+<section id="s02" class="reveal">
+  <span class="chip">stage 02/11 · what_spark_is · <span class="ok">8/8 tasks</span> · 2.0 s</span>
+  <h2>02 · what Spark actually is</h2>
+  <p>Spark was born in <strong>2009 at UC Berkeley's AMPLab</strong>, open-sourced in 2010, and became a top-level Apache project in 2014 — which makes it old enough to have opinions and young enough that half its defaults changed last release. It exists because of MapReduce: Google's 2004 paper made cluster computing possible, and a decade of writing MapReduce jobs made everyone wish it were also <em>pleasant</em>. Spark's pitch was simple: keep data in memory between steps instead of writing to disk after every map and reduce, and give humans an API above the plumbing.</p>
+  <p>What it is today, in one sentence: <strong>a distributed query engine with a compiler in the middle.</strong> You write DataFrame code (or SQL — <a href="#s08">same thing</a>, see the debate); the <em>Catalyst</em> optimizer rewrites it into a physical plan; the scheduler chops the plan into stages and tasks; executors run the tasks. Three design principles fall out of its history and explain most of its behavior:</p>
+  <ul>
+    <li><strong>Lazy evaluation.</strong> Transformations build a plan; only actions execute it. This lets the optimizer see your <em>whole</em> query before running any of it — and lets you build a 40-line pipeline that "runs" in 0.2 seconds because it hasn't.</li>
+    <li><strong>Immutability + lineage.</strong> DataFrames are never modified, only derived. If an executor dies, Spark recomputes its partitions from lineage instead of restoring a backup — fault tolerance by recipe, not by copy.</li>
+    <li><strong>Data parallelism over partitions.</strong> Every DataFrame is split into partitions; every task processes one partition. Parallelism, skew, and most performance mysteries are partition stories.</li>
+  </ul>
+  <div class="note"><span class="lbl">DATABRICKS REALITY</span><p style="margin:0">Databricks is "Spark plus": the same engine underneath, wrapped in notebooks, managed clusters, Delta Lake as the default table format, and Photon (a native-code execution engine) on newer runtimes. Everything in this guide applies; the notes flag where the wrapper changes your day.</p></div>
+  <div class="alarm"><span class="lbl">SPARK 4 CHANGED THE DEFAULT THAT BITES ON UPGRADE</span><p style="margin:0">Since <strong>Spark 4.0</strong>, <code>spark.sql.ansi.enabled</code> is <strong>on by default</strong>. Operations that used to silently return <code>NULL</code> now <em>raise</em>: integer overflow, division by zero, casting <code>"abc"</code> to a number, an out-of-range array index. Stricter and safer — and exactly the kind of thing that turns a pipeline that "worked on 3.5" red the day the cluster upgrades. It's a behavior change, not a bug: fix the data or the cast, don't reflexively set <code>spark.sql.ansi.enabled=false</code> to make the error go away (though that flag does restore the old silent-NULL behavior if you genuinely need a bridge).</p></div>
+</section>
+
+<!-- ======================= 03 MENTAL MODEL ======================= -->
+<section id="s03" class="reveal">
+  <span class="chip">stage 03/11 · mental_model · <span class="ok">200/200 tasks</span> · 4.1 s</span>
+  <h2>03 · the mental model</h2>
+  <p><strong>Naive model:</strong> "PySpark is pandas with different syntax." <strong>Real model:</strong> pandas is a calculator; Spark is a <em>factory you send blueprints to</em>. In pandas, every line executes immediately on data in your process. In Spark, your code never touches the data at all — it builds a plan on the driver, and the data lives out on executors that you will never meet personally.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 290" role="img" aria-label="Two panels. Left: the naive model, one Python process holding the data, every line executes now. Right: the real model, a driver building a DAG plan and sending stages to executors which each hold partitions of the data. A shuffle is marked between stages.">
+      <g font-family="IBM Plex Mono, monospace" font-size="11">
+        <rect x="10" y="10" width="350" height="268" rx="8" fill="#fdecee" stroke="#cf222e"/>
+        <text x="185" y="32" text-anchor="middle" fill="#cf222e" font-weight="bold">NAIVE: "big pandas" ❌</text>
+        <rect x="60" y="50" width="250" height="60" rx="6" fill="#fff" stroke="#1b1f23"/>
+        <text x="185" y="75" text-anchor="middle" fill="#1b1f23">one Python process</text>
+        <text x="185" y="95" text-anchor="middle" fill="#4b5258" font-size="10">holds ALL the data in RAM</text>
+        <text x="185" y="140" text-anchor="middle" fill="#1b1f23">df["x"] = df["y"] * 2</text>
+        <text x="185" y="158" text-anchor="middle" fill="#4b5258" font-size="10">…executes right now, on everything</text>
+        <text x="185" y="205" text-anchor="middle" fill="#cf222e" font-size="10">breaks the moment data &gt; RAM,</text>
+        <text x="185" y="222" text-anchor="middle" fill="#cf222e" font-size="10">and collect() recreates this model</text>
+        <text x="185" y="239" text-anchor="middle" fill="#cf222e" font-size="10">on the driver. on purpose. don't.</text>
+
+        <rect x="380" y="10" width="370" height="268" rx="8" fill="#e9f7ec" stroke="#2ea043"/>
+        <text x="565" y="32" text-anchor="middle" fill="#2ea043" font-weight="bold">REAL: blueprints → factory ✓</text>
+        <rect x="420" y="48" width="120" height="44" rx="6" fill="#fff" stroke="#1b1f23"/>
+        <text x="480" y="66" text-anchor="middle" fill="#1b1f23">driver</text>
+        <text x="480" y="82" text-anchor="middle" fill="#4b5258" font-size="9">your code → DAG plan</text>
+        <g>
+          <rect x="600" y="44" width="120" height="30" rx="6" fill="#fff" stroke="#e25a1c"/><text x="660" y="63" text-anchor="middle" fill="#1b1f23" font-size="10">executor · p0 p1</text>
+          <rect x="600" y="82" width="120" height="30" rx="6" fill="#fff" stroke="#e25a1c"/><text x="660" y="101" text-anchor="middle" fill="#1b1f23" font-size="10">executor · p2 p3</text>
+          <rect x="600" y="120" width="120" height="30" rx="6" fill="#fff" stroke="#e25a1c"/><text x="660" y="139" text-anchor="middle" fill="#1b1f23" font-size="10">executor · p4 p5</text>
+        </g>
+        <line x1="540" y1="64" x2="596" y2="59" stroke="#4b5258"/>
+        <line x1="540" y1="70" x2="596" y2="97" stroke="#4b5258"/>
+        <line x1="540" y1="76" x2="596" y2="135" stroke="#4b5258"/>
+        <text x="565" y="178" text-anchor="middle" fill="#1b1f23" font-size="10">stage 1 ──narrow── stage 1 ══SHUFFLE══ stage 2</text>
+        <text x="565" y="198" text-anchor="middle" fill="#4b5258" font-size="10">narrow ops stay on the executor;</text>
+        <text x="565" y="214" text-anchor="middle" fill="#4b5258" font-size="10">wide ops move data across the network</text>
+        <text x="565" y="245" text-anchor="middle" fill="#2ea043" font-size="10">data &gt; RAM is fine: it was never</text>
+        <text x="565" y="261" text-anchor="middle" fill="#2ea043" font-size="10">supposed to fit on one machine</text>
+      </g>
+    </svg>
+    <figcaption>fig 1 — the naive model vs the real one. Your code runs on the driver; your data never does (until someone calls collect()).</figcaption>
+  </figure>
+
+  <h3>"but it's just Python" — the five reflexes that betray you</h3>
+  <p>It <em>looks</em> like Python and imports like Python, so your pandas muscle memory fires — and every reflex below is correct in pandas and wrong in Spark. This table is the cliff most people walk off in week one.</p>
+  <div class="tablewrap"><table>
+    <tr><th>your pandas reflex</th><th>what it does in pandas</th><th>what it does in Spark</th></tr>
+    <tr><td><code>df['x'] = df['y'] * 2</code></td><td>mutates the frame in place, now</td><td><span class="n">TypeError</span> — DataFrames are immutable; you must <code>withColumn</code> and rebind</td></tr>
+    <tr><td><code>df[df.y > 0]</code> then read a row</td><td>runs immediately, row is right there</td><td><span class="n">nothing ran</span> — it's a lazy plan until an action; the "result" doesn't exist yet</td></tr>
+    <tr><td><code>len(df)</code> / <code>df.shape</code></td><td>instant, it's in memory</td><td><code>df.count()</code> <span class="n">runs the entire job</span> — there is no cheap row count</td></tr>
+    <tr><td><code>for i, row in df.iterrows()</code></td><td>slow but works</td><td><span class="n">an anti-pattern with a body count</span> — collect()s everything to one machine, or doesn't run at all</td></tr>
+    <tr><td><code>df.loc[5]</code> / <code>df.iloc[0]</code></td><td>positional access, free</td><td><span class="n">no row index exists</span> — rows have no stable order or position across partitions</td></tr>
+  </table></div>
+  <p>The deeper point under all five: <strong>pandas is eager and ordered and single-machine; Spark is lazy and unordered and distributed.</strong> Those aren't syntax differences you can paper over with a cheat sheet — they change what's even <em>possible</em>. "Give me row 5" is meaningless when the data is scattered across 200 partitions on 12 machines with no inherent order, and "how many rows?" is a distributed job, not an attribute lookup. When a pandas habit throws a confusing error or runs suspiciously fast, it's almost always one of these five underneath.</p>
+  <div class="note"><span class="lbl">THE ONE-LINE TEST</span><p style="margin:0">If a line would still make sense when the data is too big for any single computer and split across a cluster, it's Spark-shaped. If it secretly assumes "all the rows are right here, in order," it's a pandas reflex wearing Spark syntax — and it will betray you at scale, not in the demo.</p></div>
+
+  <h3>the two-word vocabulary that explains every slow job</h3>
+  <p><strong>Narrow</strong> transformations (<code>select</code>, <code>filter</code>, <code>withColumn</code>) work on each partition independently — they chain together into one stage and cost almost nothing extra. <strong>Wide</strong> transformations (<code>groupBy</code>, <code>join</code>, <code>orderBy</code>, <code>distinct</code>) need rows with the same key on the same machine — so Spark stops, writes every partition's output grouped by key, and every executor fetches its share over the network. That pause is the <strong>shuffle</strong>: a stage boundary, a disk+network bill, and the place where 90% of your performance problems live.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 170" role="img" aria-label="A DAG: read then filter then withColumn grouped as stage 1, a shuffle boundary marked as expensive, then groupBy agg as stage 2, then write.">
+      <g font-family="IBM Plex Mono, monospace" font-size="11">
+        <rect x="14" y="60" width="320" height="50" rx="8" fill="#fdeee5" stroke="#e25a1c"/>
+        <text x="174" y="80" text-anchor="middle" fill="#1b1f23">stage 1: read → filter → withColumn</text>
+        <text x="174" y="98" text-anchor="middle" fill="#4b5258" font-size="10">narrow: each partition minds its own business</text>
+        <rect x="420" y="60" width="220" height="50" rx="8" fill="#fdeee5" stroke="#e25a1c"/>
+        <text x="530" y="80" text-anchor="middle" fill="#1b1f23">stage 2: groupBy().agg()</text>
+        <text x="530" y="98" text-anchor="middle" fill="#4b5258" font-size="10">same keys, same machine — by force</text>
+        <line x1="334" y1="85" x2="418" y2="85" stroke="#cf222e" stroke-width="2" stroke-dasharray="6 3"/>
+        <text x="376" y="50" text-anchor="middle" fill="#cf222e" font-weight="bold" font-size="10">SHUFFLE</text>
+        <text x="376" y="130" text-anchor="middle" fill="#cf222e" font-size="9">disk + network + serialization</text>
+        <text x="376" y="146" text-anchor="middle" fill="#cf222e" font-size="9">= where the time goes</text>
+        <line x1="640" y1="85" x2="700" y2="85" stroke="#4b5258"/>
+        <text x="726" y="89" text-anchor="middle" fill="#2ea043">write</text>
+      </g>
+    </svg>
+    <figcaption>fig 2 — stages are free; the boundaries between them are not. Count your shuffles before you count anything else.</figcaption>
+  </figure>
+
+  <div class="fix"><span class="lbl">THE LITMUS TEST</span><p style="margin:0">Before running any job, you should be able to answer: <em>how many shuffles does this plan contain, and which line causes each one?</em> If you can't, run <code>df.explain("formatted")</code> and look for <code>Exchange</code> — that's the shuffle, wearing its formal name.</p></div>
+</section>
+
+<!-- ======================= 04 CORE REFERENCE ======================= -->
+<section id="s04" class="reveal">
+  <span class="chip">stage 04/11 · core_reference · <span class="ok">200/200 tasks</span> · 6.3 s</span>
+  <h2>04 · core reference</h2>
+
+  <h3>transformations vs actions — the only taxonomy that matters</h3>
+  <div class="tablewrap"><table>
+    <tr><th></th><th>what</th><th>cost</th><th>examples</th></tr>
+    <tr><td><strong>narrow transformation</strong></td><td>builds plan, per-partition</td><td><span class="y">free now, cheap later</span></td><td><code>select</code> <code>where/filter</code> <code>withColumn</code> <code>drop</code> <code>union</code> <code>coalesce(n)</code></td></tr>
+    <tr><td><strong>wide transformation</strong></td><td>builds plan, needs co-located keys</td><td><span class="y">free now</span>, <span class="n">shuffle later</span></td><td><code>groupBy</code> <code>join</code> <code>orderBy</code> <code>distinct</code> <code>repartition(n)</code> <code>Window.partitionBy</code></td></tr>
+    <tr><td><strong>action</strong></td><td>executes the plan. ALL of it.</td><td><span class="n">the whole bill, now</span></td><td><code>show</code> <code>count</code> <code>collect</code> <code>take</code> <code>first</code> <code>toPandas</code> <code>write.*</code></td></tr>
+  </table></div>
+  <p>Corollary worth tattooing: <strong>calling two actions runs the plan twice.</strong> A <code>df.count()</code> for logging followed by <code>df.write</code> recomputes everything — unless you <code>cache()</code> between them (and <a href="#s09">uncache after</a>, see the SOS for the hoarder's fate).</p>
+
+  <h3>the many faces of "make this DataFrame smaller"</h3>
+  <div class="tablewrap"><table>
+    <tr><th>command</th><th>returns</th><th>shuffles?</th><th>driver risk</th><th>use when</th></tr>
+    <tr><td><code>limit(n)</code></td><td>DataFrame</td><td>no</td><td><span class="y">none</span></td><td>peeking during development</td></tr>
+    <tr><td><code>sample(0.01)</code></td><td>DataFrame</td><td>no</td><td><span class="y">none</span></td><td>representative dev subset</td></tr>
+    <tr><td><code>take(n)</code> / <code>show(n)</code></td><td>list / prints</td><td>no</td><td><span class="y">tiny</span></td><td>eyeballing a few rows</td></tr>
+    <tr><td><code>collect()</code></td><td>list of ALL rows</td><td>no</td><td><span class="n">fatal at scale</span></td><td>only after an aggregation you've counted</td></tr>
+    <tr><td><code>toPandas()</code></td><td>pandas DataFrame</td><td>no</td><td><span class="n">fatal at scale</span></td><td>small aggregated results for plotting</td></tr>
+  </table></div>
+
+  <h3>a worked session: pricing quotes at Nimbus Freight</h3>
+  <div class="codewrap"><pre><code><span class="c"># the cast: shipments (2.1B rows), quotes (400M), dim_ports (4,800)</span>
+from pyspark.sql import functions as F
+from pyspark.sql.window import Window
+
+<span class="c"># 1 · schemas are contracts — never infer in production code</span>
+quotes = spark.read.schema(quote_schema).parquet("s3://nimbus-lake/quotes/")
+
+<span class="c"># 2 · narrow chain: one stage, no drama</span>
+active = (quotes
+    .where(F.col("valid_until") >= F.current_date())
+    .withColumn("value_band",
+        F.when(F.col("value_eur") > 1_000_000, "jumbo").otherwise("standard")))
+
+<span class="c"># 3 · the small-table join: broadcast = no shuffle of the big side</span>
+enriched = active.join(F.broadcast(ports), "port_id", "left")
+
+<span class="c"># 4 · the big-big join: this WILL shuffle both sides. that's fine — once you know.</span>
+priced = enriched.join(shipments.select("shipment_id", "status"), "shipment_id")
+
+<span class="c"># 5 · window: latest quote per shipment — partitionBy = shuffle key</span>
+w = Window.partitionBy("shipment_id").orderBy(F.col("quoted_at").desc())
+latest = priced.withColumn("rn", F.row_number().over(w)).where("rn = 1").drop("rn")
+
+<span class="c"># 6 · write partitioned by what downstream FILTERS on, not what's convenient</span>
+(latest.write.mode("overwrite")
+    .partitionBy("region")
+    .parquet("s3://nimbus-lake/marts/latest_quotes/"))</code></pre><button class="copybtn" type="button">copy</button></div>
+
+  <div class="note"><span class="lbl">DATABRICKS REALITY</span><p style="margin:0"><code>display(df)</code> in a notebook is an action (it runs a <code>limit</code> under the hood) and renders a nice table — use it instead of <code>show()</code> there. <code>saveAsTable</code> writes Delta by default on Databricks, which buys you <code>MERGE</code>, time travel, and <code>OPTIMIZE</code> — prefer tables over raw paths on engagements that have Unity Catalog.</p></div>
+
+  <h3>first, the word that explains all of this: <em>vectorized</em></h3>
+  <p>A <strong>vectorized</strong> operation applies to a whole batch of values in one call, instead of looping one value at a time. The difference isn't style — it's where the work runs. A row-by-row loop runs in the Python interpreter: per value, Python boxes an object, does the op, unboxes it. A vectorized op hands the entire column to compiled code (Spark's JVM, or native libraries underneath) that rips through a contiguous block of memory with no per-row interpreter overhead — often using the CPU's SIMD instructions that genuinely do many values per cycle.</p>
+  <p>The rule of thumb that follows: <strong>10–100× speed differences between "the same logic" written two ways are normal, not exotic.</strong> It's the same reason pandas and NumPy tell you never to loop over rows — and it's the entire reason the next rule exists.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 130" role="img" aria-label="Top lane: row-by-row, eight separate boxes each labelled box, op, unbox, passing through a slow Python interpreter. Bottom lane: vectorized, one wide block of eight values processed in a single pass by compiled code.">
+      <g font-family="IBM Plex Mono, monospace" font-size="11">
+        <text x="14" y="26" fill="#cf222e" font-weight="bold">row-by-row (Python loop)</text>
+        <g fill="#fdecee" stroke="#cf222e">
+          <rect x="14" y="36" width="40" height="26" rx="3"/><rect x="58" y="36" width="40" height="26" rx="3"/><rect x="102" y="36" width="40" height="26" rx="3"/><rect x="146" y="36" width="40" height="26" rx="3"/><rect x="190" y="36" width="40" height="26" rx="3"/><rect x="234" y="36" width="40" height="26" rx="3"/><rect x="278" y="36" width="40" height="26" rx="3"/><rect x="322" y="36" width="40" height="26" rx="3"/>
+        </g>
+        <text x="188" y="54" text-anchor="middle" fill="#cf222e" font-size="9">box · op · unbox, ×N, in the interpreter</text>
+        <text x="500" y="54" fill="#cf222e">8 calls → slow</text>
+
+        <text x="14" y="96" fill="#2ea043" font-weight="bold">vectorized (one batch, compiled)</text>
+        <rect x="14" y="104" width="348" height="20" rx="3" fill="#e9f7ec" stroke="#2ea043"/>
+        <text x="188" y="118" text-anchor="middle" fill="#2ea043" font-size="9">whole column, one pass, no per-row overhead</text>
+        <text x="500" y="118" fill="#2ea043">1 call → fast</text>
+      </g>
+    </svg>
+    <figcaption>fig 3 — same eight values, two execution models. The built-ins, Catalyst expressions, and pandas_udf are all on the bottom lane; a plain Python UDF is on the top.</figcaption>
+  </figure>
+
+  <h3>so: built-ins before UDFs, always</h3>
+  <div class="codewrap"><pre><code><span class="c"># BAD: a Python UDF — rows get serialized to a Python worker and back, row by row.</span>
+<span class="c"># Catalyst can't see inside it, so it can't optimize around it either.</span>
+@F.udf("double")
+def vat(x): return x * 1.24
+
+<span class="c"># GOOD: the same thing, staying in the JVM where the optimizer can see it</span>
+df.withColumn("gross", F.col("net") * 1.24)
+
+<span class="c"># NEEDED a real function? pandas_udf works on column batches via Arrow —</span>
+<span class="c"># 10-100× faster than a row-by-row UDF, still slower than built-ins.</span>
+<span class="c"># pyspark.sql.functions has ~400 of them. Check the docs before writing any UDF.</span></code></pre><button class="copybtn" type="button">copy</button></div>
+  <div class="alarm"><span class="lbl">"PANDAS_UDF" IS NOT PANDAS</span><p style="margin:0">The name is a trap. A <code>pandas_udf</code> does <em>not</em> load your data into pandas or run on one machine — it still runs distributed, on every executor, in parallel. What it borrows from pandas is only the <strong>function signature</strong>: Spark hands each executor its partition as an Arrow-backed <code>pd.Series</code>/<code>DataFrame</code>, your function operates on that batch vectorized, and Spark stitches the results back. So "pandas_udf" means "a vectorized UDF whose body happens to speak pandas," not "do this in pandas." Reaching for it because you "want to use pandas on the cluster" is the misconception — if that's the goal, you want the <a href="https://spark.apache.org/docs/latest/api/python/tutorial/pandas_on_spark/index.html">pandas API on Spark</a> (<code>import pyspark.pandas</code>), which is a different thing again.</p></div>
+</section>
+
+<!-- ======================= 05 ROSETTA ======================= -->
+<section id="s05" class="reveal">
+  <span class="chip">stage 05/11 · ui_rosetta · <span class="ok">8/8 tasks</span> · 1.7 s</span>
+  <h2>05 · the Spark UI rosetta stone</h2>
+  <p>The Spark UI is where the truth lives — every tuning question is answered there before it's answered in a config. The rosetta: what you want to know, and where each environment hides it.</p>
+  <div class="tablewrap"><table>
+    <tr><th>you want to…</th><th>code</th><th>Spark UI</th><th>Databricks notebook</th></tr>
+    <tr><td>see the plan</td><td><code>df.explain("formatted")</code></td><td>SQL/DataFrame tab → query → plan graph</td><td>cell output of <code>explain</code>, or the SQL tab via cluster → Spark UI</td></tr>
+    <tr><td>find the slow stage</td><td>—</td><td>Jobs → click job → stage timeline (the long bar)</td><td>same UI, via the notebook cell's job links</td></tr>
+    <tr><td>spot skew</td><td>—</td><td>Stage detail → task duration max ≫ median</td><td>same; also the cell's task progress (199/200 syndrome)</td></tr>
+    <tr><td>spot spill</td><td>—</td><td>Stage detail → "Spill (memory/disk)" columns</td><td>same — spill ≠ crash, but it's your earliest warning</td></tr>
+    <tr><td>see shuffle size</td><td>—</td><td>Stage summary → Shuffle Read / Write</td><td>same</td></tr>
+    <tr><td>watch executor health</td><td>—</td><td>Executors tab → dead executors, GC time</td><td>cluster → Metrics; Spark UI → Executors</td></tr>
+    <tr><td>kill a runaway job</td><td><code>spark.sparkContext.cancelAllJobs()</code></td><td>Jobs → kill link</td><td>notebook Stop button (politer than it feels)</td></tr>
+  </table></div>
+  <div class="alarm"><span class="lbl">BUTTONS THAT BITE</span><p style="margin:0"><strong>Notebook state is not code.</strong> A notebook that "works" after six out-of-order cell runs is the Spark equivalent of the git guide's untracked file — unreproducible by construction. If it gets scheduled, it's a <a href="/collaboration-bootcamp/consultant-setup-survival-guide/">script with worse diffs</a>. And <strong>auto-terminating clusters</strong> take your cached DataFrames and temp views with them — "it worked yesterday" sometimes just means "the cluster hadn't restarted yet".</p></div>
+</section>
+
+<!-- ======================= 06 CONFIGS ======================= -->
+<section id="s06" class="reveal">
+  <span class="chip">stage 06/11 · configs_that_pay_rent · <span class="ok">8/8 tasks</span> · 2.2 s</span>
+  <h2>06 · configs that pay rent</h2>
+  <p>Two files. The first makes local development honest; the second documents the only cluster knobs worth touching before you've read the Spark UI. (Pin versions to current — these examples assume Spark 4.1, the current release.)</p>
+
+  <h3>1 · the local dev + test session</h3>
+  <div class="codewrap"><pre><code><span class="c"># conftest.py — a local SparkSession fixture; ties into the pipeline guide's test tiers</span>
+import pytest
+from pyspark.sql import SparkSession
+
+@pytest.fixture(scope="session")
+def spark():
+    s = (SparkSession.builder
+         .master("local[2]")           <span class="c"># 2 cores: enough to catch partition bugs</span>
+         .appName("tests")
+         <span class="c"># default shuffle partitions is 200 — pointless locally, slow tests</span>
+         .config("spark.sql.shuffle.partitions", "2")
+         .config("spark.ui.enabled", "false")        <span class="c"># no UI server per test run</span>
+         .config("spark.sql.session.timeZone", "UTC") <span class="c"># CI is UTC; be UTC everywhere</span>
+         .getOrCreate())
+    yield s
+    s.stop()</code></pre><button class="copybtn" type="button">copy</button></div>
+
+  <h3>2 · cluster knobs, annotated</h3>
+  <div class="codewrap"><pre><code><span class="c"># the short list — everything else: read the Spark UI first, then the docs</span>
+
+<span class="c"># true (default since 3.2). AQE re-plans at runtime: coalesces tiny shuffle</span>
+<span class="c"># partitions, splits skewed ones. turned off "for stability"? ask why, with a date.</span>
+spark.sql.adaptive.enabled
+
+<span class="c"># 200 by default. with AQE on it's a ceiling, not a target.</span>
+<span class="c"># raise for huge (TB-scale) shuffles, lower for small clusters.</span>
+spark.sql.shuffle.partitions
+
+<span class="c"># 10MB default. tables under it broadcast automatically.</span>
+<span class="c"># set to -1 only to debug a broadcast OOM.</span>
+spark.sql.autoBroadcastJoinThreshold
+
+<span class="c"># 1g default. the seatbelt that kills collect() before collect() kills</span>
+<span class="c"># the driver. do NOT raise it to "fix" an error.</span>
+spark.driver.maxResultSize
+
+<span class="c"># true: toPandas()/pandas_udf use Arrow batches instead of row-by-row</span>
+<span class="c"># pickling. order-of-magnitude difference.</span>
+spark.sql.execution.arrow.pyspark.enabled</code></pre><button class="copybtn" type="button">copy</button></div>
+
+  <div class="note"><span class="lbl">DATABRICKS REALITY</span><p style="margin:0">Cluster sizing is a cost decision, not just a speed one: <strong>job clusters</strong> (spin up, run, die) for scheduled work, <strong>all-purpose clusters</strong> only for humans typing. The most expensive Spark config at most clients is an all-purpose cluster running a nightly job — that's a finding, not a preference.</p></div>
+</section>
+
+<!-- ======================= 07 MOST WANTED ======================= -->
+<section id="s07" class="reveal">
+  <span class="chip">stage 07/11 · the_most_wanted · <span class="fail">173/200 tasks</span> · 8 at large</span>
+  <h2>07 · the most wanted</h2>
+  <p>Eight repeat offenders, last seen near a cluster you maintain. All previously employed as "the person who set this pipeline up".</p>
+  <div class="posters">
+    <div class="poster"><span class="star">★ WANTED ★</span><span class="mug">🧲</span><h4>The Collect Caller</h4>
+      <p class="crime"><strong>Crime:</strong> <code>collect()</code> on 2.1B rows "to check something". The driver had 16 GB of RAM and one job: it failed at both.</p>
+      <div class="bounty"><b>THE FIX</b>Peek with <code>show()</code>/<code>limit()</code>; collect only aggregated results you've counted first.</div></div>
+    <div class="poster"><span class="star">★ WANTED ★</span><span class="mug">✖️</span><h4>The Cartesian Joiner</h4>
+      <p class="crime"><strong>Crime:</strong> forgot the join key, produced 400M × 4,800 rows, and described the result as "the job got slower lately".</p>
+      <div class="bounty"><b>THE FIX</b>Joins fail loudly without keys only if you let them: check <code>explain()</code> for <code>CartesianProduct</code> before running.</div></div>
+    <div class="poster"><span class="star">★ WANTED ★</span><span class="mug">🔮</span><h4>The Schema Inferrer</h4>
+      <p class="crime"><strong>Crime:</strong> <code>inferSchema=True</code> on a 900-file CSV read, every night. Spark reads the data twice and guesses; the guess changed on a Tuesday.</p>
+      <div class="bounty"><b>THE FIX</b>Schemas are contracts: define them in code. Inference is for exploration only.</div></div>
+    <div class="poster"><span class="star">★ WANTED ★</span><span class="mug">🐍</span><h4>The UDF Maximalist</h4>
+      <p class="crime"><strong>Crime:</strong> wrote <code>@udf</code> wrappers for upper-casing strings and adding numbers. Every row commutes to a Python worker and back.</p>
+      <div class="bounty"><b>THE FIX</b><code>pyspark.sql.functions</code> has ~400 built-ins the optimizer can see through. UDF is the last resort, pandas_udf the second-to-last.</div></div>
+    <div class="poster"><span class="star">★ WANTED ★</span><span class="mug">🐼</span><h4>The Pandas Smuggler</h4>
+      <p class="crime"><strong>Crime:</strong> <code>toPandas()</code> on the full table, "because I know pandas". The cluster did all that work so one machine could fall over with dignity.</p>
+      <div class="bounty"><b>THE FIX</b>Aggregate in Spark, convert the <em>result</em>. If pandas syntax is the point, the pandas API on Spark exists.</div></div>
+    <div class="poster"><span class="star">★ WANTED ★</span><span class="mug">📦</span><h4>The Cache Hoarder</h4>
+      <p class="crime"><strong>Crime:</strong> <code>.cache()</code> on every intermediate DataFrame since 2024. Nothing is ever unpersisted. Executors evict each other in alphabetical order.</p>
+      <div class="bounty"><b>THE FIX</b>Cache only what's reused by 2+ actions, <code>unpersist()</code> when done, verify in the UI's Storage tab.</div></div>
+    <div class="poster"><span class="star">★ WANTED ★</span><span class="mug">1️⃣</span><h4>The Single-File Writer</h4>
+      <p class="crime"><strong>Crime:</strong> <code>repartition(1)</code> before every write "so it's one tidy file". One task writes 600 GB while 199 executors watch in silence.</p>
+      <div class="bounty"><b>THE FIX</b>Let Spark write many files; downstream readers don't care. One file is a reporting-tool requirement, not a default.</div></div>
+    <div class="poster"><span class="star">★ WANTED ★</span><span class="mug">🔁</span><h4>The Row Looper</h4>
+      <p class="crime"><strong>Crime:</strong> <code>for row in df.collect():</code> followed by per-row API calls. A distributed engine, used as a slow for-loop with extra steps.</p>
+      <div class="bounty"><b>THE FIX</b>Think in columns and joins, not rows. For real per-batch side effects: <code>foreachPartition</code>, carefully.</div></div>
+  </div>
+  <p style="font-size:.85rem">🎲 Feeling lucky? <button class="btn" id="cursed" type="button">generate a cursed cluster config</button> <span id="cursedout" style="font-family:var(--mono);font-size:.78rem;color:var(--ink-soft)"></span></p>
+</section>
+
+<!-- ======================= 08 DEBATE ======================= -->
+<section id="s08" class="reveal">
+  <span class="chip">stage 08/11 · the_eternal_debate · <span class="ok">2/2 tasks</span> · 60 s</span>
+  <h2>08 · the eternal debate: DataFrame API vs Spark SQL</h2>
+  <div class="versus">
+    <div class="vcard"><h4>team DataFrame 🐍</h4>
+      <p>"It's testable Python: functions, type hints, IDE refactoring, unit tests per transformation. SQL strings are where logic goes to hide."</p>
+      <p><em>Fails when:</em> a 14-deep <code>.withColumn</code> chain reimplements, less readably, what one SQL window expression says.</p></div>
+    <div class="vcard"><h4>team SQL 📜</h4>
+      <p>"Everyone reads SQL — analysts, DBAs, the client. The logic is declarative and portable; half the team can review it."</p>
+      <p><em>Fails when:</em> 600-line f-string templates with <code>{'{placeholders}'}</code> nobody can test, lint, or refactor safely.</p></div>
+  </div>
+  <p>Settled in one sentence, fifty-nine seconds early: <strong>they compile to the same plan.</strong> <code>df.groupBy("region").agg(...)</code> and <code>spark.sql("SELECT region, ... GROUP BY region")</code> hit the same Catalyst optimizer and produce identical physical plans — performance is a tie, by construction.</p>
+  <div class="fix"><span class="lbl">THE RULE</span><p style="margin:0">Pick per audience, then <strong>one job, one dialect</strong>. Pipelines that ping-pong between SQL strings and DataFrame chains every five lines are unreviewable in both languages at once. (And never build SQL by concatenating user input — that's not a style question, that's the security finding.)</p></div>
+</section>
+
+<!-- ======================= 09 SOS ======================= -->
+<section id="s09" class="reveal">
+  <span class="chip">stage 09/11 · sos_driver_lost · <span class="fail">ExecutorLostFailure</span> · retry ∞</span>
+  <h2>09 · SOS — the driver has left the chat</h2>
+  <p>Breathe. Open the Spark UI <em>before</em> touching any config — the answer is almost always written there. Then find your scenario.</p>
+
+  <h3>"It's been stuck at 199/200 tasks for an hour." — skew</h3>
+  <p>One partition got all the rows because one key owns half the data (at Nimbus: <code>port_id = 'ROTTERDAM'</code>, obviously). The UI confirms it: in the stage detail, max task duration ≫ median.</p>
+  <div class="codewrap"><pre><code><span class="c"># 0 · find the hot keys — cheap, and now you KNOW instead of guessing</span>
+df.groupBy("port_id").count().orderBy(F.desc("count")).show(10)
+
+<span class="c"># 1 · modern Spark fixes most join skew itself — check AQE is on (default since 3.2)</span>
+spark.conf.get("spark.sql.adaptive.enabled")            <span class="c"># 'true' or you found the problem</span>
+spark.conf.get("spark.sql.adaptive.skewJoin.enabled")   <span class="c"># splits oversized partitions at runtime</span>
+
+<span class="c"># 2 · skewed AGGREGATION (AQE can't always save you): salt the key —</span>
+<span class="c">#     spread the hot key 16 ways, aggregate, then fold the salt back in</span>
+salted = (df.withColumn("salt", (F.rand() * 16).cast("int"))
+    .groupBy("port_id", "salt").agg(F.sum("value_eur").alias("partial"))
+    .groupBy("port_id").agg(F.sum("partial").alias("total")))
+
+<span class="c"># 3 · skewed JOIN where one side is small-ish: force a broadcast and skip the shuffle entirely</span>
+df.join(F.broadcast(dim), "port_id")</code></pre><button class="copybtn" type="button">copy</button></div>
+
+  <h3>"OOM on the driver."</h3>
+  <p>The driver is one machine doing bookkeeping; someone made it do data work. The suspects, in order: <code>collect()</code>, <code>toPandas()</code>, a <code>broadcast()</code> of something that wasn't small, or tens of thousands of tasks generating plan overhead.</p>
+  <div class="codewrap"><pre><code><span class="c"># find the collect (it's there): grep first, tune later</span>
+grep -rn "collect()\|toPandas()" jobs/
+
+<span class="c"># keep the seatbelt on — this error is the system working as intended:</span>
+<span class="c"># "Total size of serialized results ... is bigger than spark.driver.maxResultSize (1g)"</span>
+<span class="c"># fix the collect, don't raise the limit. raising it converts a clean error into a dead driver.</span></code></pre><button class="copybtn" type="button">copy</button></div>
+
+  <h3>"OOM on an executor / ExecutorLostFailure."</h3>
+  <p>One task got more data than its share of memory. Causes in order of likelihood: skew (see above), an <code>explode()</code> that multiplied rows, too few partitions for the data size, or a giant broadcast. Check the stage's spill columns first — spill is the early warning you ignored.</p>
+
+  <h3>"It worked on the sample, dies on full data."</h3>
+  <p>Of course it did — skew, spill, and broadcast limits are all <em>scale-dependent</em>. Your sample had no hot keys and fit in memory. Re-test with a stratified sample that keeps the big keys (<code>df.sampleBy("port_id", fractions)</code>), and read the full-size plan: AQE may choose different joins at scale.</p>
+
+  <h3>"The nightly job is suddenly 3× slower and nobody changed anything."</h3>
+  <ul>
+    <li><strong>The data changed instead.</strong> Input grew past the broadcast threshold → a broadcast join silently became a shuffle join. The plan in the UI tells you in one glance.</li>
+    <li><strong>Small-files disease.</strong> Upstream started writing thousands of tiny files; listing + opening them dominates. Compact them (Delta: <code>OPTIMIZE</code>).</li>
+    <li><strong>A new hot key arrived.</strong> Skew is seasonal — Nimbus signs one mega-customer and a uniform key isn't.</li>
+  </ul>
+
+  <h3>know your actions — what each one actually drags to the driver</h3>
+  <div class="tablewrap"><table>
+    <tr><th>command</th><th>brings to driver</th><th>safe at scale?</th></tr>
+    <tr><td><code>show(20)</code> / <code>take(20)</code></td><td>20 rows</td><td><span class="y">yes</span></td></tr>
+    <tr><td><code>count()</code></td><td>one number (but runs the whole plan)</td><td><span class="y">yes — just not free</span></td></tr>
+    <tr><td><code>collect()</code></td><td>every row of the result</td><td><span class="n">only after aggregation</span></td></tr>
+    <tr><td><code>toPandas()</code></td><td>every row, converted, in driver RAM</td><td><span class="n">only after aggregation</span></td></tr>
+    <tr><td><code>write.*</code></td><td>nothing — executors write directly</td><td><span class="y">yes, the grown-up option</span></td></tr>
+  </table></div>
+
+  <div class="alarm"><span class="lbl">🚨 THE GOLDEN RULE</span><p style="margin:0"><strong>Read the Spark UI before changing any config.</strong> Tuning without looking is cargo culting with a budget. Every <code>spark.conf.set</code> in your codebase should be traceable to a specific observation in a specific UI tab — otherwise it's a superstition with version control.</p></div>
+
+  <h3>bonus weapon: <code>explain("formatted")</code> 🔬</h3>
+  <div class="codewrap"><pre><code>priced.explain("formatted")
+<span class="o">== Physical Plan ==</span>
+<span class="o">AdaptiveSparkPlan (8)</span>
+<span class="o">+- HashAggregate (7)                 ← the agg, after the shuffle</span>
+<span class="o">   +- Exchange (6) hashpartitioning(region)   ← THE SHUFFLE. there it is.</span>
+<span class="o">      +- HashAggregate (5)           ← partial agg before shuffling (good: less data moves)</span>
+<span class="o">         +- Project (4)</span>
+<span class="o">            +- BroadcastHashJoin (3) ← ports got broadcast: no shuffle for the join ✓</span>
+<span class="c"># the reading skill: count the Exchanges, check each join's type matches your intent.</span>
+<span class="c"># BroadcastHashJoin = good for small×big · SortMergeJoin = normal for big×big ·</span>
+<span class="c"># CartesianProduct = you forgot the join key. stop the job.</span></code></pre><button class="copybtn" type="button">copy</button></div>
+</section>
+
+<!-- ======================= 10 BOSS FIGHT ======================= -->
+<section id="s10" class="reveal">
+  <span class="chip">stage 10/11 · boss_fight · <span class="pend">0/5 tasks</span> · awaiting you</span>
+  <h2>10 · boss fight 🐉</h2>
+  <p>Five questions between you and the rank of <strong>Catalyst Whisperer</strong>. The cluster is watching.</p>
+
+  <div class="q" data-correct="b">
+    <p class="qq">1/5 · Your 40-line transformation chain "runs" in 0.3 seconds. Why?</p>
+    <label><input type="radio" name="q1" value="a"> Spark is just incredibly fast, ship it</label>
+    <label><input type="radio" name="q1" value="b"> Transformations are lazy — nothing executes until an action; you've built a plan, not run it</label>
+    <label><input type="radio" name="q1" value="c"> The cluster pre-computed it because it liked the look of your code</label>
+    <label><input type="radio" name="q1" value="d"> Python's GIL makes everything instant</label>
+    <p class="why">Lazy evaluation: the chain builds a DAG. The bill arrives with the first action — which is also why the "slow line" in your stack trace is rarely the guilty line.</p>
+  </div>
+  <div class="q" data-correct="c">
+    <p class="qq">2/5 · Which of these causes a shuffle?</p>
+    <label><input type="radio" name="q2" value="a"> <code>filter</code> — discarding rows is disruptive</label>
+    <label><input type="radio" name="q2" value="b"> <code>withColumn</code> — new columns need new memory</label>
+    <label><input type="radio" name="q2" value="c"> <code>groupBy().agg()</code> — same keys must reach the same machine</label>
+    <label><input type="radio" name="q2" value="d"> <code>show()</code> — printing is famously expensive</label>
+    <p class="why">Wide transformations (groupBy, join, orderBy, distinct, repartition) need keys co-located, so data crosses the network. Narrow ops stay put.</p>
+  </div>
+  <div class="q" data-correct="a">
+    <p class="qq">3/5 · <code>df.collect()</code> on a 2-billion-row DataFrame will…</p>
+    <label><input type="radio" name="q3" value="a"> Try to materialize every row on the single driver machine, and die (ideally stopped by maxResultSize first)</label>
+    <label><input type="radio" name="q3" value="b"> Stream the rows politely, like a gentleman</label>
+    <label><input type="radio" name="q3" value="c"> Automatically convert to a generator because Python</label>
+    <label><input type="radio" name="q3" value="d"> Collect them into 2 billion separate variables</label>
+    <p class="why">collect() pulls the entire result into driver memory. The 1g maxResultSize default is the seatbelt — fix the collect rather than loosening it.</p>
+  </div>
+  <div class="q" data-correct="d">
+    <p class="qq">4/5 · The stage sits at 199/200 tasks for 40 minutes. The most likely cause?</p>
+    <label><input type="radio" name="q4" value="a"> Task 200 is on a coffee break, statistically deserved</label>
+    <label><input type="radio" name="q4" value="b"> You need more executors — always more executors</label>
+    <label><input type="radio" name="q4" value="c"> The network cable on node 7 is loose again</label>
+    <label><input type="radio" name="q4" value="d"> Skew: one partition got a hot key's worth of data while 199 got crumbs</label>
+    <p class="why">Classic skew signature. Check max vs median task duration in the stage detail, find the hot key with a groupBy().count(), then AQE / salting / broadcast.</p>
+  </div>
+  <div class="q" data-correct="b">
+    <p class="qq">5/5 · When does broadcasting a table in a join make sense?</p>
+    <label><input type="radio" name="q5" value="a"> Always — broadcasting is free, that's why it's called casting</label>
+    <label><input type="radio" name="q5" value="b"> When the table is small enough to fit comfortably in each executor's memory — it skips shuffling the big side entirely</label>
+    <label><input type="radio" name="q5" value="c"> Only on clusters with good Wi-Fi</label>
+    <label><input type="radio" name="q5" value="d"> When you want every executor to have a personal copy of 400M rows, as a treat</label>
+    <p class="why">Broadcast = ship the small table to every executor so the big table never moves. Under 10MB it happens automatically; broadcasting something big is a driver-and-executor OOM with extra steps.</p>
+  </div>
+  <button class="btn" id="grade" type="button">⚔️ submit to the cluster</button>
+  <p id="quizresult" role="status"></p>
+</section>
+
+<!-- ======================= 11 RESOURCES ======================= -->
+<section id="s11" class="reveal">
+  <span class="chip">stage 11/11 · resources · <span class="ok">cached</span> · MEMORY_AND_DISK</span>
+  <h2>11 · resources worth your evening</h2>
+  <ul class="res">
+    <li><a href="https://spark.apache.org/docs/latest/sql-programming-guide.html">Spark SQL programming guide</a> — the official docs' useful half; bookmark the functions reference and check it before writing any UDF.</li>
+    <li><a href="https://spark.apache.org/docs/latest/sql-performance-tuning.html">Spark performance tuning guide</a> — AQE, broadcast thresholds, and caching, from the source.</li>
+    <li><a href="https://spark.apache.org/docs/latest/web-ui.html">Spark Web UI guide</a> — every tab explained; the companion to this page's golden rule.</li>
+    <li><a href="https://www.oreilly.com/library/view/learning-spark-2nd/9781492050032/">Learning Spark, 2nd ed.</a> — the best end-to-end book; Databricks has distributed free PDF copies of it for years.</li>
+    <li><a href="https://books.japila.pl/apache-spark-internals/">The Internals of Apache Spark</a> (Jacek Laskowski) — when you need to know what an Exchange <em>actually</em> does.</li>
+    <li><a href="https://docs.databricks.com/en/optimizations/aqe.html">Databricks: Adaptive Query Execution</a> — the platform view of the skew-fixing machinery.</li>
+    <li><a href="https://www.databricks.com/learn/free-edition">Databricks Free Edition</a> 🎮 — a free workspace to break in private before breaking one with a cost center (it replaced the old Community Edition).</li>
+  </ul>
+</section>
+
+<footer>
+  <p>same series: <a href="/collaboration-bootcamp/consultant-setup-survival-guide/">01 setup</a> · <a href="/collaboration-bootcamp/git-survival-guide/">02 git</a> · <a href="/collaboration-bootcamp/pipeline-survival-guide/">03 pipelines</a> · <a href="/collaboration-bootcamp/">the front door</a></p>
+  <p style="margin-top:.5rem">$ priced.collect() → <span id="egg" role="button" tabindex="0" aria-label="Easter egg">0 rows collected to the driver. keep it that way.</span></p>
+</footer>
+
+</main>
+</div>
+
+<script>
+(function(){
+"use strict";
+const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ── hero terminal ── */
+const lines = [
+  {t:'$ spark-submit nightly_quotes.py', cls:''},
+  {t:'[Stage 0:>                   (0 + 8) / 8]    reading shipments (2.1B rows)', cls:'dim'},
+  {t:'[Stage 7:=====>            (3 + 8) / 200]   joining quotes × ports', cls:'dim'},
+  {t:'[Stage 7:=====>            (3 + 8) / 200]   still (3 + 8). it has been 40 minutes.', cls:'dim'},
+  {t:'ERROR TaskSetManager: Lost task 173.3 in stage 7.0: ExecutorLostFailure', cls:'err'},
+  {t:'ERROR: the driver has left the chat.', cls:'err'},
+  {t:'→ opening survival guide...', cls:'ok'}
+];
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+const body=document.getElementById('termBody');
+document.getElementById('termSizer').innerHTML = lines.map(l=>'<span class="'+l.cls+'">'+esc(l.t)+'</span>').join('\n');
+function renderStatic(){ body.innerHTML = lines.map(l=>'<span class="'+l.cls+'">'+esc(l.t)+'</span>').join('\n'); }
+if(reduced){ renderStatic(); }
+else{
+  let li=0,ci=0;
+  function tick(){
+    if(li>=lines.length){
+      setTimeout(()=>{li=0;ci=0;body.innerHTML='<span class="cur"></span>';setTimeout(tick,600);},9000);
+      return;
+    }
+    const line=lines[li]; ci++;
+    const done=lines.slice(0,li).map(l=>'<span class="'+l.cls+'">'+esc(l.t)+'</span>').join('\n');
+    const cur='<span class="'+line.cls+'">'+esc(line.t.slice(0,ci))+'</span>';
+    body.innerHTML=(done?done+'\n':'')+cur+'<span class="cur"></span>';
+    if(ci>=line.t.length){ li++; ci=0; setTimeout(tick, li===4?900:(li===1?420:200)); }
+    else setTimeout(tick, li===0?40:5);
+  }
+  body.innerHTML='<span class="cur"></span>';
+  setTimeout(tick,400);
+}
+
+/* ── scroll reveal ── */
+if(!reduced && 'IntersectionObserver' in window){
+  const io=new IntersectionObserver(es=>es.forEach(e=>{
+    if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}
+  }),{threshold:.08});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+}else{
+  document.querySelectorAll('.reveal').forEach(el=>el.classList.add('in'));
+}
+
+/* ── copy buttons ── */
+document.querySelectorAll('.copybtn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const pre=btn.parentElement.querySelector('pre');
+    navigator.clipboard.writeText(pre.innerText).then(()=>{
+      btn.textContent='copied ✓'; setTimeout(()=>btn.textContent='copy',1500);
+    });
+  });
+});
+
+/* ── panic button ── */
+document.getElementById('panic').addEventListener('click',()=>{
+  document.body.classList.remove('flash'); void document.body.offsetWidth;
+  if(!reduced) document.body.classList.add('flash');
+  document.getElementById('s09').scrollIntoView({behavior:reduced?'auto':'smooth'});
+});
+
+/* ── cursed config generator ── */
+const cursed=[
+  ['spark.driver.maxResultSize=0','// "0 means unlimited." it also means unlimited.'],
+  ['spark.sql.shuffle.partitions=1','// parallelism is a lifestyle choice'],
+  ['spark.sql.adaptive.enabled=false','// disabled in 2022 "temporarily"'],
+  ['spark.executor.memory=512m','// the cluster equivalent of skipping breakfast'],
+  ['spark.sql.autoBroadcastJoinThreshold=10g','// broadcast EVERYTHING. what is a driver for, if not suffering'],
+  ['spark.task.maxFailures=100','// retry until the data changes its mind'],
+  ['spark.sql.shuffle.partitions=20000','// for a 50MB dataset. each partition gets 2.5KB and a dream'],
+  ['spark.driver.memory=128g','// the collect() will continue until morale improves'],
+  ['spark.sql.legacy.timeParserPolicy=LEGACY','// set by someone who left in 2023. nobody dares touch it'],
+  ['spark.executor.instances=2','// "the cluster is slow" — the cluster, barely a duo'],
+  ['spark.sql.files.maxPartitionBytes=16m','// maximum files, minimum progress'],
+  ['spark.serializer=org.apache.spark.serializer.JavaSerializer','// artisanal, hand-crafted slowness'],
+  ['spark.sql.crossJoin.enabled=true','// the safety was annoying'],
+  ['spark.speculation=true','// now slow tasks run TWICE. double the compute, same skew'],
+  ['spark.eventLog.enabled=false','// no Spark UI history. what happened at 3am stays at 3am']
+];
+const cbtn=document.getElementById('cursed'), cout=document.getElementById('cursedout');
+if(cbtn){cbtn.addEventListener('click',()=>{
+  const pick=cursed[Math.floor(Math.random()*cursed.length)];
+  cout.textContent=pick[0]+'  '+pick[1];
+});}
+
+/* ── confetti ── */
+function confetti(){
+  if(reduced) return;
+  const colors=['#e25a1c','#2ea043','#0969da','#d4a017','#cf222e'];
+  for(let i=0;i<80;i++){
+    const c=document.createElement('div'); c.className='confetti';
+    const s=6+Math.random()*7;
+    c.style.cssText='left:'+(Math.random()*100)+'vw;width:'+s+'px;height:'+(s*0.6)+'px;background:'+colors[i%colors.length]+';transform:rotate('+(Math.random()*360)+'deg)';
+    document.body.appendChild(c);
+    const a=c.animate(
+      [{transform:c.style.transform+' translateY(0)',opacity:1},
+       {transform:'rotate('+(Math.random()*720)+'deg) translateY(105vh)',opacity:.7}],
+      {duration:2200+Math.random()*1800,easing:'cubic-bezier(.2,.6,.4,1)'});
+    a.onfinish=()=>c.remove();
+  }
+}
+
+/* ── quiz ── */
+const ranks=[
+  [0,'☠️ Lost Executor — no heartbeat for 120 seconds. removed from the cluster.'],
+  [2,'🌀 Shuffle Survivor — you moved a lot of data to get here, but you arrived.'],
+  [4,'🧪 AQE Adept — re-planning at runtime, like the engine itself.'],
+  [5,'🧙 Catalyst Whisperer — the optimizer asks YOU for hints now.']
+];
+document.getElementById('grade').addEventListener('click',()=>{
+  let score=0;
+  document.querySelectorAll('.q').forEach(q=>{
+    const correct=q.dataset.correct;
+    const picked=q.querySelector('input:checked');
+    q.classList.add('graded');
+    q.querySelectorAll('label').forEach(l=>{
+      const v=l.querySelector('input').value;
+      l.classList.remove('correct','wrong');
+      if(v===correct) l.classList.add('correct');
+      else if(picked && picked===l.querySelector('input')) l.classList.add('wrong');
+    });
+    if(picked && picked.value===correct) score++;
+  });
+  let rank=ranks[0][1];
+  for(const [min,label] of ranks){ if(score>=min) rank=label; }
+  document.getElementById('quizresult').textContent=score+'/5 — '+rank;
+  if(score===5) confetti();
+});
+
+/* ── footer easter egg ── */
+const egg=document.getElementById('egg');
+function eggGo(){
+  confetti();
+  if(!document.getElementById('eggline')){
+    const s=document.createElement('div'); s.id='eggline';
+    s.textContent='lazy evaluation: this joke only executed because you clicked it. 🧪';
+    document.querySelector('footer').appendChild(s);
+  }
+}
+egg.addEventListener('click',eggGo);
+egg.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();eggGo();}});
+})();
+</script>
+</body>
+</html>

@@ -117,7 +117,7 @@ footer{border-top:1px solid var(--rail);margin-top:2.6rem;padding-top:1.4rem;fon
     <a href="/collaboration-bootcamp/consultant-setup-survival-guide/">01 setup</a><span class="arr">→</span>
     <a href="/collaboration-bootcamp/git-survival-guide/">02 git</a><span class="arr">→</span>
     <a href="/collaboration-bootcamp/pipeline-survival-guide/">03 pipelines</a><span class="arr">→</span>
-    <span class="stop dis">04 spark (soon)</span>
+    <a href="/collaboration-bootcamp/spark-survival-guide/">04 spark</a>
   </div>
   <p>Each one stands alone — but they link forward: the setup guide's inner loop becomes the pipeline guide's outer loop, and the pipeline guide's testing chapter is what the Spark guide will assume you know.</p>
 </section>
@@ -143,10 +143,11 @@ footer{border-top:1px solid var(--rail);margin-top:2.6rem;padding-top:1.4rem;fon
       <p class="pan">For when: the pipeline is red and the release is today.</p>
       <div class="links"><a href="/collaboration-bootcamp/pipeline-survival-guide/">read →</a><a class="sos" href="/collaboration-bootcamp/pipeline-survival-guide/#s10">🔴 pipeline red</a></div>
     </div>
-    <div class="card c-spark">
-      <h3><span class="ord" style="font-family:var(--mono);opacity:.55;font-weight:400">04</span> spark-survival-guide <span class="badge queue">⏳ in the queue</span></h3>
+    <div class="card shipped c-spark">
+      <h3><span class="ord" style="font-family:var(--mono);opacity:.55;font-weight:400">04</span> spark-survival-guide <span class="badge live">● live</span></h3>
       <p class="desc">The Spark Survival Guide — PySpark for people who get paged. Lazy DAGs, shuffles, skew, and why collect() was a mistake.</p>
       <p class="pan">For when: the driver has left the chat.</p>
+      <div class="links"><a href="/collaboration-bootcamp/spark-survival-guide/">read →</a><a class="sos" href="/collaboration-bootcamp/spark-survival-guide/#s09">💀 driver lost</a></div>
     </div>
   </div>
 </section>
@@ -157,7 +158,7 @@ footer{border-top:1px solid var(--rail);margin-top:2.6rem;padding-top:1.4rem;fon
     <a class="routerow" href="/collaboration-bootcamp/consultant-setup-survival-guide/#sos"><span class="sym">"My environment is broken and I can't even run the thing."</span><span class="dest">😱 setup SOS →</span></a>
     <a class="routerow" href="/collaboration-bootcamp/git-survival-guide/#sos"><span class="sym">"I committed to the wrong branch / force-pushed / it's all gone."</span><span class="dest">😱 git SOS →</span></a>
     <a class="routerow" href="/collaboration-bootcamp/pipeline-survival-guide/#s10"><span class="sym">"The pipeline is red, the test is flaky, the release is today."</span><span class="dest">🔴 pipeline SOS →</span></a>
-    <div class="routerow dis"><span class="sym">"The Spark job OOMed at 3am."</span><span class="dest">🔥 soon</span></div>
+    <a class="routerow" href="/collaboration-bootcamp/spark-survival-guide/#s09"><span class="sym">"The Spark job OOMed at 3am."</span><span class="dest">💀 spark SOS →</span></a>
   </div>
 </section>
 
@@ -182,8 +183,8 @@ const lines = [
   {t:'setup      ./onboard.sh                 [live]   😱 ENV BROKEN', cls:'ok'},
   {t:'git        git log --survival-guide     [live]   😱 PANIC', cls:'ok'},
   {t:'pipeline   pipeline-survival-guide      [live]   🔴 PIPELINE RED', cls:'ok'},
-  {t:'spark      spark-survival-guide         [queue]  🔥 DRIVER OOM', cls:'warn'},
-  {t:'3 modules live · 1 in the queue · 0 panics unhandled · pick yours below', cls:'dim'}
+  {t:'spark      spark-survival-guide         [live]   💀 DRIVER LOST', cls:'ok'},
+  {t:'4 modules live · 0 panics unhandled · pick yours below', cls:'dim'}
 ];
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 const body=document.getElementById('termBody');
