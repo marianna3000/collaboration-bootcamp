@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>git log --survival-guide</title>
+<title>git --survival-guide — how Git thinks, and disaster recovery</title>
 <meta name="description" content="A field guide to Git: how it thinks, how people break it, and how to fix it. Now with a panic button.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
@@ -192,7 +192,7 @@ footer .zero:hover{text-decoration:underline}
 </head>
 <body>
 
-<button id="panic" type="button" aria-label="Panic — jump to disaster recovery">😱 PANIC</button>
+<button id="panic" type="button" aria-label="Git mess — jump to disaster recovery">😱 GIT MESS</button>
 
 <div class="wrap">
 
@@ -223,7 +223,7 @@ footer .zero:hover{text-decoration:underline}
     <div class="term-bar"><span class="dot d1"></span><span class="dot d2"></span><span class="dot d3"></span><span class="title">you@laptop: ~/that-one-project</span></div>
     <div class="term-body" id="term-body"><div id="live"><span class="dollar">$</span> <span id="typer"></span><span class="cursor"></span></div></div>
   </div>
-  <h1>git log <span class="flag">--survival-guide</span></h1>
+  <h1>git <span class="flag">--survival-guide</span></h1>
   <p class="sub">A field guide to Git: how it thinks, how people break it, and how to un-break it. Born as a team workshop, now a reference with a panic button. (Bottom right. You'll need it.)</p>
   <div class="meta">
     <span><span class="add">+16 sections</span>, <span class="del">−0 boring slides</span></span>
@@ -236,7 +236,7 @@ footer .zero:hover{text-decoration:underline}
 <section id="why" class="reveal">
   <div class="commit-line"><span class="sha">a1f3e0d</span><span class="tag">read-me-first</span></div>
   <h2>why this exists (and what it won't do)</h2>
-  <p>The <a href="/collaboration-bootcamp/consultant-setup-survival-guide/">setup guide</a> left you with a laptop that could die at the airport without killing the engagement. This one covers the part no laptop carries alone: <strong>shared history</strong>. And no page will teach you Git by reading it — Git lives in your hands, not your eyes; you learn it by branching, breaking things, and digging yourself out.</p>
+  <p>The <a href="/collaboration-bootcamp/setup-survival-guide/">setup guide</a> left you with a laptop that could die at the airport without killing the engagement. This one covers the part no laptop carries alone: <strong>shared history</strong>. And no page will teach you Git by reading it — Git lives in your hands, not your eyes; you learn it by branching, breaking things, and digging yourself out.</p>
   <p>What this page <em>is</em>: the cheat sheet for the command you half-remember, and a rogues' gallery of the mistakes everyone makes (so you can make more original ones).</p>
   <p>If something still feels foreign after the self-study resources at the <a href="#resources">bottom</a>, ask. That's what teams are for.</p>
 </section>
@@ -367,7 +367,7 @@ git push                                 <span class="c"># 6. share it (autoSetu
         <text x="545" y="196" fill="#4b5258" font-size="11">not copies — cheap &amp; fast</text>
       </g>
     </svg>
-    <figcaption>fig 2 — deltas vs snapshots: why git branching is instant</figcaption>
+    <figcaption>fig 1 — deltas vs snapshots: why git branching is instant</figcaption>
   </figure>
 
   <h3><span class="hash">##</span> (almost) everything is local</h3>
@@ -427,7 +427,7 @@ git push                                 <span class="c"># 6. share it (autoSetu
         <text x="240" y="192" font-size="11" fill="#4b5258">pull / checkout / merge</text>
       </g>
     </svg>
-    <figcaption>fig 1 — where your changes live, and which command moves them</figcaption>
+    <figcaption>fig 2 — where your changes live, and which command moves them</figcaption>
   </figure>
 
   <h3><span class="hash">##</span> git stash — the side drawer</h3>
@@ -445,8 +445,8 @@ git stash pop</code></pre>
 <!-- ============================================================ -->
 <section id="commands" class="reveal">
   <div class="commit-line"><span class="sha">e15c6b3</span><span class="tag">commands</span></div>
-  <h2>145 commands. you need about 12.</h2>
-  <p>Git ships a small army: <strong>44</strong> main porcelain commands (<code>add</code>, <code>commit</code>, <code>pull</code>, <code>push</code>…), <strong>11</strong> manipulators (<code>config</code>, <code>reflog</code>, <code>replace</code>…), <strong>17</strong> interrogators (<code>blame</code>, <code>fsck</code>, <code>rerere</code>…), <strong>10</strong> interactors (<code>send-email</code>, <code>p4</code>, <code>svn</code>…) — plus ~63 plumbing commands underneath (<code>cat-file</code>, <code>update-ref</code>, <code>fetch-pack</code>…).</p>
+  <h2>150-odd commands. you need about 12.</h2>
+  <p>Git ships a small army — dozens of everyday <em>porcelain</em> commands (<code>add</code>, <code>commit</code>, <code>push</code>, <code>pull</code>…) sitting on a deeper layer of low-level <em>plumbing</em> (<code>cat-file</code>, <code>update-ref</code>, <code>fetch-pack</code>…). Day to day you live on about a dozen.</p>
   <p>Will you need them all? <strong>Probably not.</strong> But knowing the iceberg exists helps when you eventually need <code>reflog</code> at 2am.</p>
 
   <h3><span class="hash">##</span> the many faces of <code>git add</code></h3>
@@ -493,7 +493,7 @@ git diff 4a1f3e0~ 4a1f3e0</code></pre>
   <h3><span class="hash">##</span> bonus: <code>checkout</code> has been split (and it's a good thing)</h3>
   <p><code>git checkout</code> historically did three unrelated jobs — switch branches, discard file changes, and detach HEAD — which is exactly why people kept hurting themselves with it. Modern Git (2.23+) splits the jobs into two commands that can't be confused:</p>
   <pre><code><span class="c"># switch branches (was: git checkout branch)</span>
-git switch feature-x
+git switch feature/x
 git switch -c new-branch        <span class="c"># create + switch (was: checkout -b)</span>
 
 <span class="c"># discard changes in a file (was: git checkout -- file) — DESTRUCTIVE, no undo</span>
@@ -579,7 +579,7 @@ git log --follow --oneline -- pricing.py</code></pre>
     name = Your Full Name
     email = your.email@company.com
 <span class="k">[core]</span>
-    <span class="c"># Prevents "works on my machine" line-ending drama between Windows/Mac/Linux</span>
+    <span class="c"># Mac/Linux default: check out as-is, commit LF. (On Windows use autocrlf=true; better yet, commit a .gitattributes with `text=auto` for the whole team.)</span>
     autocrlf = input
     <span class="c"># Use a modern editor for commit messages</span>
     editor = code --wait
@@ -608,7 +608,7 @@ git log --follow --oneline -- pricing.py</code></pre>
          --format=format:'%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(white)%s%C(reset) %C(dim white)- %an%C(reset)%C(bold yellow)%d%C(reset)'
     s = status -s
     st = status
-    co = checkout
+    sw = switch
     hist = log --pretty=format:"%h %ad | %s%d [%an]" --graph --date=short
     uncommit = reset --soft HEAD~1
     <span class="c"># For the brave: commit with a random message from whatthecommit.com</span>
@@ -663,16 +663,16 @@ indent_style = tab</code></pre>
   <pre><code><span class="c"># .pre-commit-config.yaml — in the repo root</span>
 <span class="k">repos:</span>
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: check-added-large-files    <span class="c"># blocks the 400 MB parquet "oops"</span>
       - id: detect-private-key         <span class="c"># blocks the career-limiting commit</span>
       - id: end-of-file-fixer
       - id: trailing-whitespace
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.0
+    rev: v0.15.17
     hooks:
-      - id: ruff                       <span class="c"># lint before it embarrasses you in review</span></code></pre>
+      - id: ruff-check                 <span class="c"># lint before it embarrasses you in review</span></code></pre>
   <pre><code>pip install pre-commit
 pre-commit install        <span class="c"># wires it into .git/hooks — once per clone</span></code></pre>
   <p>From then on, every <code>git commit</code> runs the gauntlet first. Failed check = no commit = nothing to apologize for later. (Pin <code>rev</code> versions to whatever's current — these will age.)</p>
@@ -912,13 +912,13 @@ git rebase --onto main old-base feature</code></pre>
 </div>
 
   <h3><span class="hash">##</span> "I committed to the wrong branch"</h3>
-  <p>Oops — you were on <code>main</code> instead of <code>feature-x</code>:</p>
-  <pre><code><span class="c"># Option A: reset main back to the remote's state (--hard drops the changes entirely)</span>
+  <p>Oops — you were on <code>main</code> instead of <code>feature/x</code>:</p>
+  <pre><code><span class="c"># Option A: reset main back to the remote's state, keeping your work staged</span>
 git reset --soft origin/main
 <span class="c"># Option B: undo the last N commits, keeping changes staged</span>
 git reset --soft HEAD~N
 <span class="c"># Either way — your changes are now staged. Put them where they belong:</span>
-git checkout -b feature/my-changes
+git switch -c feature/my-changes
 git commit -m "committing on the proper branch"</code></pre>
   <p>You can also <code>cherry-pick</code> + <code>revert</code> if you want to preserve history instead of rewriting it.</p>
 
@@ -944,14 +944,14 @@ git commit --amend --no-edit</code></pre>
 git reflog
 <span class="c"># 2. spot the last commit message you remember</span>
 <span class="c"># 3. resurrect it on a new branch</span>
-git checkout -b recovered-branch &lt;commit-hash&gt;</code></pre>
+git switch -c recovered-branch &lt;commit-hash&gt;</code></pre>
   <p>What reflog actually shows you — a diary of everywhere HEAD has been:</p>
   <pre><code><span class="c">$ git reflog</span>
-4a1f3e0 HEAD@{0}: checkout: moving from feature-x to main
+4a1f3e0 HEAD@{0}: checkout: moving from feature/x to main
 <span class="g">8b2c915 HEAD@{1}: commit: add vessel config parser   ← there it is</span>
 1c9d042 HEAD@{2}: commit: wire up sensor mapping
 7e3af80 HEAD@{3}: branch: Created from main</code></pre>
-  <p>Reflog records every move for ~90 days by default — which is why "permanently deleted" in Git usually means "I haven't looked in the reflog yet."</p>
+  <p>Reflog keeps reachable entries ~90 days by default, and entries for unreachable commits (reset-away or amended-away work — exactly the disaster cases) ~30 days — which is why "permanently deleted" in Git usually means "I haven't looked in the reflog yet."</p>
 
   <h3><span class="hash">##</span> "I'm stuck in a merge/rebase conflict and everything is broken!"</h3>
   <p>The terminal says <code>(main|REBASING 1/5)</code> and your files are full of <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</code>:</p>
@@ -1057,7 +1057,7 @@ git bisect reset               <span class="c"># back to where you started</span
         <text x="637" y="36" fill="#2ea043">↑ deploy</text>
       </g>
     </svg>
-    <figcaption>github flow — branch out, merge back, ship</figcaption>
+    <figcaption>fig 4 — github flow: branch out, merge back, ship</figcaption>
   </figure>
   <p><strong>Best for:</strong> web apps, SaaS, small teams.</p>
 
@@ -1086,7 +1086,7 @@ git bisect reset               <span class="c"># back to where you started</span
         <g fill="#f05133"><circle cx="155" cy="143" r="5"/><circle cx="185" cy="143" r="5"/><circle cx="315" cy="143" r="5"/><circle cx="345" cy="143" r="5"/></g>
       </g>
     </svg>
-    <figcaption>gitflow — five branch types, one ceremony per release (dashed: release fixes merge back to develop)</figcaption>
+    <figcaption>fig 5 — gitflow: five branch types, one ceremony per release (dashed: release fixes merge back to develop)</figcaption>
   </figure>
   <p><strong>Best for:</strong> versioned products, scheduled releases, regulated industries.</p>
   <p><strong>Watch out for:</strong> the overhead is real — long-lived branches invite merge hell.</p>
@@ -1113,7 +1113,7 @@ git bisect reset               <span class="c"># back to where you started</span
         <text x="380" y="40" fill="#2ea043">🚩 feature flags hide unfinished work</text>
       </g>
     </svg>
-    <figcaption>trunk-based — everyone on one line, all day, every day</figcaption>
+    <figcaption>fig 6 — trunk-based: everyone on one line, all day, every day</figcaption>
   </figure>
   <p><strong>Best for:</strong> high-trust teams with great CI/CD — the fastest possible integration cycle.</p>
   <p><strong>Watch out for:</strong> needs excellent test coverage and CI. Risky without both.</p>
@@ -1124,7 +1124,7 @@ git bisect reset               <span class="c"># back to where you started</span
   <p>That <code>tag v1.3</code> in the GitFlow diagram: a tag is a <strong>permanent, human-readable bookmark on one commit</strong>. Branches move with every commit; tags never do — which is exactly what you want for marking releases:</p>
   <pre><code>git tag -a v1.3 -m "Release 1.3: fuel surcharge support"
 git push --tags                <span class="c"># tags don't push by default — everyone forgets this once</span>
-git checkout v1.3              <span class="c"># time-travel to exactly what shipped (detached HEAD — look, don't build)</span></code></pre>
+git switch --detach v1.3       <span class="c"># time-travel to exactly what shipped (detached HEAD — look, don't build)</span></code></pre>
   <p>GitHub/GitLab "Releases" are tags with release notes and artifacts attached. If your CI deploys on tags, the tag <em>is</em> the release button — treat it with the same respect.</p>
 </section>
 
@@ -1204,7 +1204,7 @@ Refs: DS-1042                                       <span class="c">← body wra
       <label class="opt"><input type="radio" name="q2" value="b"> <code>git reset --soft origin/main</code>, then branch and commit properly</label>
       <label class="opt"><input type="radio" name="q2" value="c"> Force push and pretend it was intentional</label>
       <label class="opt"><input type="radio" name="q2" value="d"> Delete the repo and re-clone (the classic)</label>
-      <p class="why">Your work is local and committed = safe. Soft reset returns the changes to staged, then <code>git checkout -b feature/proper-branch</code> and commit there. No deleting, no panicking, no lying.</p>
+      <p class="why">Your work is local and committed = safe. Soft reset returns the changes to staged, then <code>git switch -c feature/proper-branch</code> and commit there. No deleting, no panicking, no lying.</p>
     </div>
     <div class="q" data-answer="c">
       <p class="qt"><span class="qnum">3/5</span>Why do we gitignore <code>.venv</code> folders?</p>
@@ -1266,7 +1266,7 @@ Refs: DS-1042                                       <span class="c">← body wra
 </section>
 
 <footer>
-<p>same series: <a href="/collaboration-bootcamp/consultant-setup-survival-guide/">01 setup</a> · <a href="/collaboration-bootcamp/pipeline-survival-guide/">03 pipelines</a> · <a href="/collaboration-bootcamp/spark-survival-guide/">04 spark</a> · <a href="/collaboration-bootcamp/python-survival-guide/">05 python</a> · <a href="/collaboration-bootcamp/ai-survival-guide/">06 ai</a> · <a href="/collaboration-bootcamp/">the front door</a></p>
+<p>same series: <a href="/collaboration-bootcamp/setup-survival-guide/">setup</a> · <a href="/collaboration-bootcamp/python-survival-guide/">python</a> · <a href="/collaboration-bootcamp/ci-survival-guide/">ci</a> · <a href="/collaboration-bootcamp/spark-survival-guide/">spark</a> · <a href="/collaboration-bootcamp/ai-survival-guide/">ai</a> · <a href="/collaboration-bootcamp/">the front door</a></p>
 
   <p>$ git log --oneline | tail -1<br>
   <span class="zero" id="zero" title="...">0000000</span> initial commit — go play and break things 🚀</p>
@@ -1293,13 +1293,13 @@ const lines=[
   {t:'git commit -m "final"',r:'<span class="ok">[main 4a1f3e0] final</span>'},
   {t:'git commit -m "final_v2"',r:'<span class="ok">[main 8b2c915] final_v2</span>'},
   {t:'git commit -m "final_v2_ACTUAL_FINAL"',r:'<span class="err">we need to talk.</span>'},
-  {t:'git checkout -b survival-guide',r:'<span class="ok">Switched to a new branch \'survival-guide\' ✨</span>'}
+  {t:'git switch -c survival-guide',r:'<span class="ok">Switched to a new branch \'survival-guide\' ✨</span>'}
 ];
 const typer=document.getElementById('typer');
 const termBody=document.getElementById('term-body');
 const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 if(reduced){
-  termBody.innerHTML='<span class="dollar">$</span> git checkout -b survival-guide<br><span class="ok">Switched to a new branch \'survival-guide\' ✨</span>';
+  termBody.innerHTML='<span class="dollar">$</span> git switch -c survival-guide<br><span class="ok">Switched to a new branch \'survival-guide\' ✨</span>';
 }else{
   let li=0;
   function typeLine(){

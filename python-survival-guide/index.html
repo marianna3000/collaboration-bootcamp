@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>python-survival-guide — writing Python that reads like Python</title>
+<title>python --survival-guide — writing Python that reads like Python</title>
 <meta name="description" content="A reference for idiomatic Python: comprehensions, context managers, dataclasses, generators, the data model, EAFP, typing. For when the code works but doesn't read like Python.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -167,7 +167,7 @@ footer{border-top:1px solid var(--rail);margin-top:2.6rem;padding-top:1.4rem;fon
 <div class="layout">
 
 <aside class="repl" aria-label="Table of contents, styled as a Python REPL session">
-  <span class="repltitle">Python 3.13 — import this</span>
+  <span class="repltitle">Python 3.14 — import this</span>
   <nav>
     <a class="replnode" href="#s00"><span class="pr">&gt;&gt;&gt;</span> why_this_exists<span class="meta">readable counts</span></a>
     <a class="replnode" href="#s01"><span class="pr">&gt;&gt;&gt;</span> the_daily_loop<span class="meta">write · run · refactor</span></a>
@@ -191,15 +191,18 @@ footer{border-top:1px solid var(--rail);margin-top:2.6rem;padding-top:1.4rem;fon
   <div class="term-body"><div class="term-sizer" id="termSizer" aria-hidden="true"></div><div class="term-anim" id="termBody" aria-hidden="true"></div></div>
 </div>
 
-<h1>python-survival-guide</h1>
+<h1>python --survival-guide</h1>
 <p class="subtitle">Writing Python that reads like Python — comprehensions, context managers, dataclasses, and the data model. For when the code works but a reviewer winced.</p>
+
+<div class="note"><b>VERSION NOTE</b>
+Targets Python 3.14, current as of June 2026. A few idioms are version-gated (flagged inline); older interpreters may lack them and newer releases may change behavior — review before relying on specifics.</div>
 
 <!-- 00 WHY -->
 <section id="s00" class="reveal">
   <span class="chip">&gt;&gt;&gt; 00 · why_this_exists · <span class="ok">readable</span></span>
   <h2>00 · why this page exists</h2>
-  <p>The other guides in this series make your <a href="/collaboration-bootcamp/consultant-setup-survival-guide/">machine reproducible</a>, your <a href="/collaboration-bootcamp/git-survival-guide/">history safe</a>, your <a href="/collaboration-bootcamp/pipeline-survival-guide/">pipeline honest</a>, and your <a href="/collaboration-bootcamp/spark-survival-guide/">jobs survivable</a>. This one is about the thing inside all of them: the Python itself, and whether it reads like Python or like a language you used to know, transcribed.</p>
-  <p>This page will not teach you to program; it assumes you already write Python that runs. What it <em>is</em>: a reference for the idioms that separate "works" from "Pythonic," and a gallery of the habits — usually imported from Java, C, or MATLAB — that make a reviewer sigh before they comment. It deliberately stops at the language's edge: testing, typing discipline, logging and project structure live in the <a href="/collaboration-bootcamp/pipeline-survival-guide/">pipeline</a> and <a href="/collaboration-bootcamp/consultant-setup-survival-guide/">setup</a> guides, and this page links there rather than repeating them.</p>
+  <p>The other guides in this series make your <a href="/collaboration-bootcamp/setup-survival-guide/">machine reproducible</a>, your <a href="/collaboration-bootcamp/git-survival-guide/">history safe</a>, your <a href="/collaboration-bootcamp/ci-survival-guide/">CI green</a>, and your <a href="/collaboration-bootcamp/spark-survival-guide/">jobs survivable</a>. This one is about the thing inside all of them: the Python itself, and whether it reads like Python or like a language you used to know, transcribed.</p>
+  <p>This page will not teach you to program; it assumes you already write Python that runs. What it <em>is</em>: a reference for the idioms that separate "works" from "Pythonic," and a gallery of the habits — usually imported from Java, C, or MATLAB — that make a reviewer sigh before they comment. It deliberately stops at the language's edge: testing, typing discipline, logging and project structure live in the <a href="/collaboration-bootcamp/ci-survival-guide/">CI</a> and <a href="/collaboration-bootcamp/setup-survival-guide/">setup</a> guides, and this page links there rather than repeating them.</p>
   <p>"Pythonic" is not a personality trait or gatekeeping. It's a real property: code that uses the language's own grain — its data model, its built-ins, its idioms — so the next reader (you, in three weeks) spends their attention on the logic, not on decoding the style.</p>
 </section>
 
@@ -328,7 +331,7 @@ for s in shipments:
 
   <h3>unpacking — stop indexing</h3>
   <div class="codewrap"><pre><code><span class="c"># tuple unpacking: name the parts, don't index them</span>
-first, last = full_name.split(" ", 1)        <span class="c"># not name[0] / name[1]</span>
+first, last = full_name.split(" ", 1)        <span class="c"># not name[0]/name[1]; raises ValueError if there's no space</span>
 a, b = b, a                                  <span class="c"># swap, no temp variable</span>
 
 <span class="c"># star-unpacking: head and the rest</span>
@@ -375,8 +378,8 @@ with timed("price quotes"):
   <p>An <strong>f-string</strong> (the <code>f</code> prefix, since Python 3.6) embeds expressions directly in the string: <code>{name}</code> is replaced with the value of <code>name</code>. Prefer it over the older alternatives for three concrete reasons, not just taste:</p>
   <ul>
     <li><strong>Readable</strong> — the values appear where they'll print, so you read the output left to right instead of cross-referencing a <code>%</code>-tuple or counting <code>+</code> joins.</li>
-    <li><strong>No <code>str()</code> dance</strong> — it calls <code>str()</code> on each value for you, so concatenation's classic <code>TypeError: can only concatenate str (not "float")</code> simply can't happen.</li>
-    <li><strong>Fastest</strong> — f-strings are evaluated at compile time into efficient bytecode; they beat <code>%</code>, <code>.format()</code>, and <code>+</code>-concatenation in benchmarks.</li>
+    <li><strong>No <code>str()</code> dance</strong> — it calls <code>str()</code> on each value for you, so concatenation's classic <code>TypeError: can only concatenate str (not "float") to str</code> simply can't happen.</li>
+    <li><strong>Fastest</strong> — the formatting is compiled into dedicated bytecode (the expressions still run at call time); they beat <code>%</code>, <code>.format()</code>, and <code>+</code>-concatenation in benchmarks.</li>
   </ul>
   <div class="codewrap"><pre><code>name, total = "Nimbus", 1042.5
 <span class="bad"># no  — manual str(), easy to typo the spacing/colons:</span>
@@ -387,7 +390,7 @@ with timed("price quotes"):
 f"Total for {name}: {total:,.2f}"     <span class="c"># → 'Total for Nimbus: 1,042.50'</span>
 <span class="o"># bonus — the = suffix prints name AND value, the fastest debug print there is:</span>
 f"{total=}"                           <span class="c"># → 'total=1042.5'</span></code></pre><button class="copybtn" type="button">copy</button></div>
-  <div class="alarm"><span class="lbl">THE ONE PLACE NOT TO USE THEM</span><p style="margin:0">Never f-string user input into SQL, shell commands, or HTML — <code>f"SELECT * FROM t WHERE id = {user_id}"</code> is an injection hole. Use the library's parameterisation (the pipeline guide's security note). f-strings are for <em>display</em>, not for building queries.</p></div>
+  <div class="alarm"><span class="lbl">THE ONE PLACE NOT TO USE THEM</span><p style="margin:0">Never f-string user input into SQL, shell commands, or HTML — <code>f"SELECT * FROM t WHERE id = {user_id}"</code> is an injection hole. Use the library's parameterisation (the CI guide's security note). f-strings are for <em>display</em>, not for building queries.</p></div>
 
   <h3>the standard-library reflexes</h3>
   <div class="tablewrap"><table>
@@ -400,7 +403,7 @@ f"{total=}"                           <span class="c"># → 'total=1042.5'</span
     <tr><td>cache a pure function</td><td><code>functools.cache</code></td><td>a module-level dict</td></tr>
     <tr><td>pair / window / batch iterables</td><td><code>itertools</code> (<code>pairwise</code>, <code>islice</code>, <code>chain</code>)</td><td>index arithmetic</td></tr>
   </table></div>
-  <div class="note"><span class="lbl">THE REFLEX</span><p style="margin:0">Before writing a loop with a counter, an accumulator dict, or index math, pause: <strong>the stdlib probably already named this pattern.</strong> <code>Counter</code>, <code>defaultdict</code>, <code>itertools</code>, and <code>pathlib</code> alone delete a startling fraction of the loops people write. This is the language-level version of the pipeline guide's "built-ins before UDFs."</p></div>
+  <div class="note"><span class="lbl">THE REFLEX</span><p style="margin:0">Before writing a loop with a counter, an accumulator dict, or index math, pause: <strong>the stdlib probably already named this pattern.</strong> <code>Counter</code>, <code>defaultdict</code>, <code>itertools</code>, and <code>pathlib</code> alone delete a startling fraction of the loops people write. This is the language-level version of the spark guide's "built-ins before UDFs."</p></div>
 </section>
 
 <!-- 05 STRUCTURING DATA -->
@@ -434,11 +437,11 @@ s.value_eur        <span class="c"># editor knows this field</span></code></pre>
     <tr><th>you have…</th><th>use</th><th>why</th></tr>
     <tr><td>a fixed record with named fields</td><td><code>@dataclass</code></td><td>typed, mutable-or-frozen, methods allowed</td></tr>
     <tr><td>a fixed record, immutable, ultra-light</td><td><code>NamedTuple</code></td><td>tuple under the hood, unpackable</td></tr>
-    <tr><td>data crossing a trust boundary (API, config)</td><td><code>pydantic</code> model</td><td>validates and coerces at the edge (see pipeline guide)</td></tr>
+    <tr><td>data crossing a trust boundary (API, config)</td><td><code>pydantic</code> model</td><td>validates and coerces at the edge (see CI guide)</td></tr>
     <tr><td>a genuinely dynamic mapping</td><td><code>dict</code></td><td>keys not known until runtime — the legitimate case</td></tr>
     <tr><td>a fixed set of named constants</td><td><code>enum.Enum</code></td><td><code>Status.QUOTED</code> beats the string <code>"QUOTED"</code></td></tr>
   </table></div>
-  <div class="note"><span class="lbl">THE BOUNDARY RULE (shared with the pipeline guide)</span><p style="margin:0">Validate the messy outside world <strong>once, at the door</strong>, with pydantic; pass <strong>typed objects</strong> (dataclasses) around inside, where the data is already trusted. A dict of unknown shape three call-frames deep is where bugs go to hide.</p></div>
+  <div class="note"><span class="lbl">THE BOUNDARY RULE (shared with the CI guide)</span><p style="margin:0">Validate the messy outside world <strong>once, at the door</strong>, with pydantic; pass <strong>typed objects</strong> (dataclasses) around inside, where the data is already trusted. A dict of unknown shape three call-frames deep is where bugs go to hide.</p></div>
 </section>
 
 <!-- 06 CONFIGS -->
@@ -460,7 +463,7 @@ select = [
 
 [tool.ruff.format]
 <span class="c"># formatter is Black-compatible; stop hand-aligning code and arguing in review</span></code></pre><button class="copybtn" type="button">copy</button></div>
-  <div class="codewrap"><pre><code><span class="c"># a type checker turns "Pythonic" into "provably consistent" — run in CI (see pipeline guide)</span>
+  <div class="codewrap"><pre><code><span class="c"># a type checker turns "Pythonic" into "provably consistent" — run in CI (see the CI guide)</span>
 <span class="c"># pyright (or mypy) catches the dict-typo, the wrong argument, the None you forgot</span>
 pip install pyright        <span class="c"># pin to current</span>
 pyright src/               <span class="c"># start at 'basic', ratchet toward 'strict' one module at a time</span></code></pre><button class="copybtn" type="button">copy</button></div>
@@ -477,11 +480,11 @@ pyright src/               <span class="c"># start at 'basic', ratchet toward 's
       <p class="crime"><strong>Crime:</strong> <code>for i in range(len(items)):</code> then <code>items[i]</code> — index bookkeeping to avoid just iterating the thing.</p>
       <div class="bounty"><b>THE FIX</b><code>for item in items</code>, or <code>enumerate(items)</code> when you truly need the index.</div></div>
     <div class="poster"><span class="star">★ WANTED ★</span><span class="mug">💥</span><h4>The Bare Excepter</h4>
-      <p class="crime"><strong>Crime:</strong> <code>except:</code> (or <code>except Exception: pass</code>) — swallows everything including <code>KeyboardInterrupt</code> and the bug you'll spend a day hunting.</p>
+      <p class="crime"><strong>Crime:</strong> <code>except:</code> — a bare except swallows everything, including <code>KeyboardInterrupt</code>; even <code>except Exception: pass</code> hides the bug you'll spend a day hunting.</p>
       <div class="bounty"><b>THE FIX</b>Catch the <em>specific</em> exception you can handle; let the rest propagate. Never <code>pass</code> silently.</div></div>
     <div class="poster"><span class="star">★ WANTED ★</span><span class="mug">🧨</span><h4>The Mutable Default</h4>
       <p class="crime"><strong>Crime:</strong> <code>def f(x, acc=[]):</code> — the list is created <em>once</em>, at definition, and shared across every call. State leaks between unrelated calls.</p>
-      <div class="bounty"><b>THE FIX</b><code>def f(x, acc=None):</code> then <code>acc = acc or []</code> inside. (Bugbear flags this as <code>B006</code>.)</div></div>
+      <div class="bounty"><b>THE FIX</b><code>def f(x, acc=None):</code> then <code>acc = acc if acc is not None else []</code> inside (don't use <code>acc = acc or []</code> — it silently discards a caller's empty list). Bugbear flags this as <code>B006</code>.</div></div>
     <div class="poster"><span class="star">★ WANTED ★</span><span class="mug">➕</span><h4>The String Concatenator</h4>
       <p class="crime"><strong>Crime:</strong> building a string in a loop with <code>+=</code>, or a message with <code>"a" + str(x) + "b"</code>. Quadratic and unreadable.</p>
       <div class="bounty"><b>THE FIX</b><code>"".join(parts)</code> for loops; f-strings for messages.</div></div>
@@ -659,8 +662,8 @@ help(x)      <span class="c"># the docstring, formatted</span></code></pre><butt
 </section>
 
 <footer>
-  <p>same series: <a href="/collaboration-bootcamp/consultant-setup-survival-guide/">01 setup</a> · <a href="/collaboration-bootcamp/git-survival-guide/">02 git</a> · <a href="/collaboration-bootcamp/pipeline-survival-guide/">03 pipelines</a> · <a href="/collaboration-bootcamp/spark-survival-guide/">04 spark</a> · <a href="/collaboration-bootcamp/ai-survival-guide/">06 ai</a> · <a href="/collaboration-bootcamp/">the front door</a></p>
-  <p style="margin-top:.4rem">&gt;&gt;&gt; this is module 05 — the Python idioms reference.</p>
+  <p>same series: <a href="/collaboration-bootcamp/setup-survival-guide/">setup</a> · <a href="/collaboration-bootcamp/git-survival-guide/">git</a> · <a href="/collaboration-bootcamp/ci-survival-guide/">ci</a> · <a href="/collaboration-bootcamp/spark-survival-guide/">spark</a> · <a href="/collaboration-bootcamp/ai-survival-guide/">ai</a> · <a href="/collaboration-bootcamp/">the front door</a></p>
+  <p style="margin-top:.4rem">&gt;&gt;&gt; this is the Python idioms reference.</p>
   <p style="margin-top:.5rem">&gt;&gt;&gt; import antigravity → <span id="egg" role="button" tabindex="0" aria-label="Easter egg">it opened a browser tab. it always does.</span></p>
 </footer>
 
@@ -743,9 +746,11 @@ const zen=[
   'Unless explicitly silenced.',
   'In the face of ambiguity, refuse the temptation to guess.',
   'There should be one— and preferably only one —obvious way to do it.',
+  'Although that way may not be obvious at first unless you’re Dutch.',
   'Now is better than never.',
   'Although never is often better than *right* now.',
   'If the implementation is hard to explain, it’s a bad idea.',
+  'If the implementation is easy to explain, it may be a good idea.',
   'Namespaces are one honking great idea — let’s do more of those!'
 ];
 const zb=document.getElementById('zen'), zo=document.getElementById('zenout');

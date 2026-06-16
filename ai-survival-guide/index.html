@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ai-survival-guide — using AI tools without leaking the client</title>
+<title>ai --survival-guide — using AI tools without leaking the client</title>
 <meta name="description" content="A reference for AI-assisted engineering on client work: review before you accept, keep confidential data out of the box, control updates and agents, and get faster without a pro subscription.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -196,7 +196,7 @@ footer{border-top:1px solid var(--rail);margin-top:2.6rem;padding-top:1.4rem;fon
   <div class="term-body"><div class="term-sizer" id="termSizer" aria-hidden="true"></div><div class="term-anim" id="termBody" aria-hidden="true"></div></div>
 </div>
 
-<h1>ai-survival-guide</h1>
+<h1>ai --survival-guide</h1>
 <p class="subtitle">Working fast with AI tools — the model, the harness, the loop — without leaking the client, shipping code you don't understand, or letting an agent off the leash. You are still the engineer of record.</p>
 
 <div class="wipbanner">🚧 <b>WORK IN PROGRESS</b> — this module is a draft. The principles are sound, but it hasn't had the full review the other guides have; don't treat it as settled team guidance yet. Feedback welcome via PR.</div>
@@ -205,7 +205,7 @@ footer{border-top:1px solid var(--rail);margin-top:2.6rem;padding-top:1.4rem;fon
 <section id="s00" class="reveal">
   <span class="chip">✓ 00 · why_this_exists · <span class="ok">reviewed</span></span>
   <h2>00 · why this page exists</h2>
-  <p>The rest of the series makes your <a href="/collaboration-bootcamp/consultant-setup-survival-guide/">machine</a>, <a href="/collaboration-bootcamp/git-survival-guide/">history</a>, <a href="/collaboration-bootcamp/python-survival-guide/">code</a>, <a href="/collaboration-bootcamp/pipeline-survival-guide/">pipeline</a>, and <a href="/collaboration-bootcamp/spark-survival-guide/">jobs</a> trustworthy. This module is about the newest member of the team — the AI assistant — and the fact that it is a brilliant, tireless junior with no judgement, no memory of your NDA, and no name on the commit. Yours is.</p>
+  <p>The rest of the series makes your <a href="/collaboration-bootcamp/setup-survival-guide/">machine</a>, <a href="/collaboration-bootcamp/git-survival-guide/">history</a>, <a href="/collaboration-bootcamp/python-survival-guide/">code</a>, <a href="/collaboration-bootcamp/ci-survival-guide/">CI</a>, and <a href="/collaboration-bootcamp/spark-survival-guide/">jobs</a> trustworthy. This module is about the newest member of the team — the AI assistant — and the fact that it is a brilliant, tireless junior with no judgement, no memory of your NDA, and no name on the commit. Yours is.</p>
   <p>This page will not make you good at using AI by itself, and it will not teach a specific tool — the tools change every month, their privacy settings change with them, and a guide pinned to one product's menus would be wrong by the next release. What it <em>is</em>: how these tools actually work (the model, the harness, the loop), how to get real leverage from them, and the durable questions to ask of <em>any</em> AI tool so a productivity boost doesn't turn into a confidentiality incident.</p>
   <p>The frame for everything below: <strong>you are accountable for what you ship, and for what you put in the box.</strong> The AI is a tool, like a compiler with opinions. A compiler that occasionally invents a function that doesn't exist, and would happily paste your client's production password into a public model's training set if you let it.</p>
 </section>
@@ -253,10 +253,10 @@ footer{border-top:1px solid var(--rail);margin-top:2.6rem;padding-top:1.4rem;fon
     <li><strong>Chat</strong> — you paste context and ask; it answers. You control exactly what goes in, which is the point and the trap.</li>
     <li><strong>Agents</strong> — given a goal, they read files, run commands, edit code, and loop until done. Highest leverage, and the only category that can take destructive action on your behalf.</li>
   </ul>
-  <p>The honest history: this went from "neat autocomplete" to "writes the whole function" to "runs your terminal" in about three years, which is why the tooling is powerful, the defaults are immature, and the security guidance — this page included — is still being written in real time. Treat confident claims about AI tools (again, this page included) as provisional, and verify the ones that touch confidential data against the tool's <em>current</em> documentation.</p>
+  <p>The honest history: this went from "neat autocomplete" to "writes the whole function" to "runs your terminal" in just a few years, which is why the tooling is powerful, the defaults are immature, and the security guidance — this page included — is still being written in real time. Treat confident claims about AI tools (again, this page included) as provisional, and verify the ones that touch confidential data against the tool's <em>current</em> documentation.</p>
 
   <h3>the model is not the tool: model vs harness</h3>
-  <p>Two things get conflated, and keeping them apart explains most of how these tools behave. The <strong>model</strong> is the token-predictor — the engine. The <strong>harness</strong> is everything wrapped around it: the loop that lets it call tools, run commands, read files, fetch URLs, and feed the results back so it can take another step. Claude Code, Codex, and IDE agents are <em>harnesses</em>; the model is the part inside that does the thinking.</p>
+  <p>Two things get conflated, and keeping them apart explains most of how these tools behave. The <strong>model</strong> is the token-predictor — the engine. The <strong>harness</strong> is everything wrapped around it: the loop that lets it call tools, run commands, read files, fetch URLs, and feed the results back so it can take another step. Claude Code, Codex, and IDE agents are <em>harnesses</em> (examples — the specific tools change constantly; the shape doesn't); the model is the part inside that does the thinking.</p>
   <p>This matters because most of what makes an agent useful — or dangerous — lives in the <strong>harness</strong>, not the model: which tools it's allowed to call, whether it asks before acting, what it pulls into context, how it handles a filling context window. When you "choose an AI tool" or "lock down its settings," you are mostly choosing and configuring a harness. The same model is a polite autocomplete in one harness and an agent with your shell in another.</p>
   <div class="note"><span class="lbl">THE THREE SHAPES, ONE RULE</span><p style="margin:0">Autocomplete → chat → agent is really "more harness": more tools, more autonomy, more context gathered for you. You gain leverage and lose oversight by default. The discipline is identical at every level, just more important the further right you go: <strong>know what went in, and review what comes out</strong>.</p></div>
 </section>
@@ -292,7 +292,7 @@ footer{border-top:1px solid var(--rail);margin-top:2.6rem;padding-top:1.4rem;fon
     <figcaption>fig 1 — the only structural difference that matters: a human review gate between the suggestion and the repo. Everything else in this guide defends that gate.</figcaption>
   </figure>
 
-  <p>Hold all four of the junior's traits at once and most decisions make themselves. <strong>Fast and well-read</strong>: lean on it for boilerplate, unfamiliar syntax, first drafts, and rubber-ducking. <strong>Only knows what's in its context</strong>: the model has no inherent, persistent knowledge of <em>your</em> codebase. A plain chat has seen nothing of it; an agent or IDE tool (Claude Code, Codex, an indexed assistant) can read it — but only the parts it retrieved or that fit the window, and it forgets at the session's end. So it still guesses at internal APIs whenever the relevant code isn't actually in front of it — give it the real code, and verify against yours. <strong>Won't be blamed</strong>: the accountability is entirely yours, so the review is not optional. <strong>Can't tell when it's guessing</strong>: a fabricated library, function, or fact reads exactly as confidently as a correct one — this is called <em>hallucination</em>, and it is the failure mode that ships bugs.</p>
+  <p>Hold all four of the junior's traits at once and most decisions make themselves. <strong>Fast and well-read</strong>: lean on it for boilerplate, unfamiliar syntax, first drafts, and rubber-ducking. <strong>Only knows what's in its context</strong>: the model has no inherent, persistent knowledge of <em>your</em> codebase. A plain chat has seen nothing of it; an agent or IDE tool (Claude Code, Codex, an indexed assistant) can read it — but only the parts it retrieved or that fit the window, and unless the tool offers a persistent-memory feature, it forgets at the session's end. So it still guesses at internal APIs whenever the relevant code isn't actually in front of it — give it the real code, and verify against yours. <strong>Won't be blamed</strong>: the accountability is entirely yours, so the review is not optional. <strong>Can't tell when it's guessing</strong>: a fabricated library, function, or fact reads exactly as confidently as a correct one — this is called <em>hallucination</em>, and it is the failure mode that ships bugs.</p>
   <div class="alarm"><span class="lbl">THE ACCOUNTABILITY RULE</span><p style="margin:0">"The AI wrote it" is not a defence — not in code review, not in a security post-mortem, not to a client. The moment you accept a suggestion it is <strong>your code</strong>, with your name in <code>git blame</code>. Use the AI to write faster; never to <em>understand</em> less.</p></div>
 </section>
 
@@ -304,7 +304,7 @@ footer{border-top:1px solid var(--rail);margin-top:2.6rem;padding-top:1.4rem;fon
   <h3>get more out of it without a pro subscription</h3>
   <p>The biggest efficiency lever is not the tier — it's the <strong>prompt and the context</strong>. A free model with a good prompt beats a frontier model with a vague one. What actually moves the needle, in order:</p>
   <ul>
-    <li><strong>State the goal, the constraints, and the shape of the answer.</strong> "Rewrite this function to stream instead of buffering; keep the signature; Python 3.12; no new dependencies" gets a usable answer the first time. "make this better" burns a turn.</li>
+    <li><strong>State the goal, the constraints, and the shape of the answer.</strong> "Rewrite this function to stream instead of buffering; keep the signature; Python 3.14; no new dependencies" gets a usable answer the first time. "make this better" burns a turn.</li>
     <li><strong>Give it the relevant code, not the repo.</strong> The right two functions and a type beat ten files of noise — better answers <em>and</em> less to leak (see <a href="#s05">§05</a>).</li>
     <li><strong>Show one example of the pattern you want.</strong> One sample input/output or one "do it like this" snippet outperforms paragraphs of description.</li>
     <li><strong>Iterate in the same thread.</strong> "Now handle the empty case" is cheaper and better than re-describing from scratch.</li>
@@ -434,7 +434,7 @@ conn = connect(
   <ul>
     <li><strong>Don't auto-update blindly</strong> — a silent update can change what data the tool sends, add a feature that indexes your repo, or pull in a compromised dependency. Updates that change behaviour deserve a glance at the changelog.</li>
     <li><strong>Don't block security patches</strong> — pin and review, then apply. "Never update" trades a hypothetical bad update for a certain known vulnerability.</li>
-    <li><strong>Vet extensions and MCP servers like dependencies</strong> — every editor extension and every agent connector runs with your access. Install from sources you'd trust with your credentials, check what permissions they ask for, and prefer few well-known ones over many convenient unknowns. This is the <a href="/collaboration-bootcamp/consultant-setup-survival-guide/">setup guide</a>'s "pin everything, vet your tools" applied to a surface that can read your whole project and call out to the network.</li>
+    <li><strong>Vet extensions and MCP servers like dependencies</strong> — every editor extension and every agent connector runs with your access. Install from sources you'd trust with your credentials, check what permissions they ask for, and prefer few well-known ones over many convenient unknowns. This is the <a href="/collaboration-bootcamp/setup-survival-guide/">setup guide</a>'s "pin everything, vet your tools" applied to a surface that can read your whole project and call out to the network.</li>
   </ul>
   <div class="note"><span class="lbl">DATABRICKS / ENTERPRISE REALITY</span><p style="margin:0">On a managed platform or under a corporate AI policy, most of these are decided <em>for</em> you — sanctioned models, retention terms, and network egress are set at the org level. Your job there is to <strong>stay inside the sanctioned path</strong> and not route around it with a personal account because it's faster. The shadow-AI workaround is the incident.</p></div>
 </section>
@@ -602,7 +602,7 @@ git diff main...HEAD          <span class="c"># the whole of what it did, in one
 </section>
 
 <footer>
-  <p>same series: <a href="/collaboration-bootcamp/consultant-setup-survival-guide/">01 setup</a> · <a href="/collaboration-bootcamp/git-survival-guide/">02 git</a> · <a href="/collaboration-bootcamp/pipeline-survival-guide/">03 pipelines</a> · <a href="/collaboration-bootcamp/spark-survival-guide/">04 spark</a> · <a href="/collaboration-bootcamp/python-survival-guide/">05 python</a> · <a href="/collaboration-bootcamp/">the front door</a></p>
+  <p>same series: <a href="/collaboration-bootcamp/setup-survival-guide/">setup</a> · <a href="/collaboration-bootcamp/python-survival-guide/">python</a> · <a href="/collaboration-bootcamp/git-survival-guide/">git</a> · <a href="/collaboration-bootcamp/ci-survival-guide/">ci</a> · <a href="/collaboration-bootcamp/spark-survival-guide/">spark</a> · <a href="/collaboration-bootcamp/">the front door</a></p>
   <p style="margin-top:.5rem">// AI suggested this footer. <span id="egg" role="button" tabindex="0" aria-label="Easter egg">you reviewed it before accepting, right?</span></p>
 </footer>
 

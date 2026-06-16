@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Pipeline Survival Guide — Python quality, testing & CI/CD</title>
+<title>ci --survival-guide — Python quality, testing & CI/CD</title>
 <meta name="description" content="A 2am reference for Python testing, typing, logging and CI/CD. For when the pipeline is red and the release is today.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -211,14 +211,17 @@ footer a{color:var(--accent)}
     <div class="hero-bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>nimbus-freight/pricing — pipeline #4127</span></div>
     <div class="hero-body"><div class="hero-sizer" id="heroSizer" aria-hidden="true"></div><div class="hero-anim" id="heroBody" aria-hidden="true"></div></div>
   </div>
-  <h1>The Pipeline Survival Guide</h1>
+  <h1>ci --survival-guide</h1>
   <p class="subtitle">Python quality, testing &amp; CI/CD — for when the pipeline is red and the release is today.</p>
 </header>
+
+<div class="note"><b>VERSION NOTE</b>
+Tool versions here — PostgreSQL 18.4 in the testcontainers example, plus current pytest, ruff, and pyright — are current as of June 2026. These examples assume those versions; newer releases may change flags, defaults, or behavior, so review before relying on them.</div>
 
 <section id="s00" class="reveal">
   <span class="chip">stage 00/13 · why_this_exists · <span class="ok">passed</span> in 0.4s</span>
   <h2>00 · why this page exists</h2>
-  <p>By now you have a <a href="/collaboration-bootcamp/consultant-setup-survival-guide/">reproducible machine</a> and a <a href="/collaboration-bootcamp/git-survival-guide/">history you can't lose</a>. This guide adds the thing that protects everyone else from you, and you from everyone else: the pipeline. Quality gates exist because every developer is an optimist at 17:55 on a Friday — the pipeline is the pessimist you hired to stand at the door. <strong>Boring releases are the goal. Boring is praise.</strong></p>
+  <p>By now you have a <a href="/collaboration-bootcamp/setup-survival-guide/">reproducible machine</a> and a <a href="/collaboration-bootcamp/git-survival-guide/">history you can't lose</a>. This guide adds the thing that protects everyone else from you, and you from everyone else: the pipeline. Quality gates exist because every developer is an optimist at 17:55 on a Friday — the pipeline is the pessimist you hired to stand at the door. <strong>Boring releases are the goal. Boring is praise.</strong></p>
   <p>This page will not teach you testing or CI/CD by itself; it covers what that pessimist checks — tests (unit through end-to-end), typing, logging, error handling, and the anatomy of the pipeline itself — for the day it's red and the release is today.</p>
   <p>One deliberate choice: this guide is <strong>vendor-neutral</strong>. Azure DevOps, GitHub Actions and GitLab CI are the same five ideas wearing different YAML. You get the ideas, plus a <a href="#rosetta">rosetta table</a> to translate between platforms — not one vendor's syntax reference that rots in a year.</p>
 </section>
@@ -268,7 +271,7 @@ footer a{color:var(--accent)}
       <path d="M367 204 l4 8 4 -8 z" fill="#4b5258"/>
       <text x="385" y="202" font-size="10.5" fill="#4b5258">push when green</text>
     </svg>
-    <figcaption>fig 0 — the inner loop (red → green → refactor, seconds) lives inside the outer loop (push → stages → review → merge → promote, minutes). The inner loop links back to step 07 of the setup guide.</figcaption>
+    <figcaption>fig 0 — the inner loop (red → green → refactor, seconds) lives inside the outer loop (push → stages → review → merge → promote, minutes). The inner loop links back to the setup guide.</figcaption>
   </figure>
   <p>The same loop, as a session:</p>
 <pre><code><span class="c"># inner loop — runs in seconds, on your laptop</span>
@@ -464,7 +467,7 @@ emit("info", "quote priced",
   <p>Levels that mean something: <code>DEBUG</code> = for the author, off in prod · <code>INFO</code> = business events, one per meaningful action · <code>WARNING</code> = degraded but coping · <code>ERROR</code> = a human should look today · <code>CRITICAL</code> = a human should look <em>now</em>. If everything logs at <code>INFO</code>, nothing does.</p>
 
   <h3>error handling in three rules</h3>
-  <p><strong>Raise early</strong> — validate at the boundary and fail with a message that names the problem. <strong>Catch late</strong> — only catch where you can actually do something (retry, translate, exit with a meaningful code — see step 04 of the setup guide). And <strong>never</strong> <code>except: pass</code> — that line doesn't handle errors, it hides bodies.</p>
+  <p><strong>Raise early</strong> — validate at the boundary and fail with a message that names the problem. <strong>Catch late</strong> — only catch where you can actually do something (retry, translate, exit with a meaningful code — see the setup guide). And <strong>never</strong> <code>except: pass</code> — that line doesn't handle errors, it hides bodies.</p>
 </section>
 
 <section id="s05" class="reveal">
@@ -625,9 +628,9 @@ from testcontainers.postgres import PostgresContainer
 
 @pytest.fixture(scope="session")
 def pg_url():
-    with PostgresContainer("postgres:16") as pg:    <span class="c"># pin the version your prod runs</span>
+    with PostgresContainer("postgres:18.4") as pg:    <span class="c"># pin the version your prod runs</span>
         yield pg.get_connection_url()</code></pre>
-  <p>Use <strong>both</strong>, at different tiers — fast liar for logic, slow truth for wiring. Spark/Databricks pipelines have their own version of this whole chapter: <a href="/collaboration-bootcamp/spark-survival-guide/">the Spark Survival Guide</a>, module 04.</p>
+  <p>Use <strong>both</strong>, at different tiers — fast liar for logic, slow truth for wiring. Spark/Databricks pipelines have their own version of this whole chapter: <a href="/collaboration-bootcamp/spark-survival-guide/">the Spark Survival Guide</a>.</p>
 </section>
 
 <section id="s08" class="reveal">
@@ -808,7 +811,7 @@ def test_split_preserves_total(total, parts):
 </section>
 
 <footer>
-  <p>Survival Guide Series — <a href="/collaboration-bootcamp/consultant-setup-survival-guide/">the setup guide</a> · <a href="/collaboration-bootcamp/git-survival-guide/">the git guide</a> · <a href="/collaboration-bootcamp/python-survival-guide/">the Python guide</a> · <a href="/collaboration-bootcamp/spark-survival-guide/">the Spark guide</a> · <a href="/collaboration-bootcamp/ai-survival-guide/">the AI guide</a></p>
+  <p>Survival Guide Series — <a href="/collaboration-bootcamp/setup-survival-guide/">the setup guide</a> · <a href="/collaboration-bootcamp/git-survival-guide/">the git guide</a> · <a href="/collaboration-bootcamp/python-survival-guide/">the Python guide</a> · <a href="/collaboration-bootcamp/spark-survival-guide/">the Spark guide</a> · <a href="/collaboration-bootcamp/ai-survival-guide/">the AI guide</a></p>
   <p style="margin-top:.6rem">pipeline #4127 · <span id="egg">✓ all checks passed</span> · 0 warnings · artifacts retained for 30 days</p>
 </footer>
 
@@ -829,7 +832,7 @@ const heroLines = [
   {t:'✗ test        FAILED in 2m04s', cls:'bad'},
   {t:"  FAILED test_quote.py::test_total — AssertionError: 'Hello, World' != 'Hello, World '", cls:'bad'},
   {t:'  hint: trailing space. two hours of your life. we need to talk.', cls:'dim'},
-  {t:'→ opening the pipeline survival guide…', cls:''}
+  {t:'→ opening ci --survival-guide…', cls:''}
 ];
 const hero = document.getElementById('heroBody');
 function renderHeroStatic(){
@@ -973,6 +976,6 @@ document.getElementById('egg').addEventListener('click',()=>{
 });
 })();
 </script>
-<script>try{var _s=JSON.parse(localStorage.getItem('cb-survived')||'{}');_s.pipeline=1;localStorage.setItem('cb-survived',JSON.stringify(_s));}catch(e){}</script>
+<script>try{var _s=JSON.parse(localStorage.getItem('cb-survived')||'{}');_s.ci=1;localStorage.setItem('cb-survived',JSON.stringify(_s));}catch(e){}</script>
 </body>
 </html>

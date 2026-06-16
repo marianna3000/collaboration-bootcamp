@@ -7,9 +7,12 @@ One front door, several flavors of panic. A series of self-contained, single-fil
 | Page | Path | Live URL |
 |---|---|---|
 | Hub (front door) | `index.html` | [/collaboration-bootcamp/](https://marianna3000.github.io/collaboration-bootcamp/) |
-| Consultant Setup Guide | `consultant-setup-survival-guide/` | [/consultant-setup-survival-guide/](https://marianna3000.github.io/collaboration-bootcamp/consultant-setup-survival-guide/) |
-| Git Survival Guide | `git-survival-guide/` | [/git-survival-guide/](https://marianna3000.github.io/collaboration-bootcamp/git-survival-guide/) |
-| Pipeline Survival Guide | `pipeline-survival-guide/` | [/pipeline-survival-guide/](https://marianna3000.github.io/collaboration-bootcamp/pipeline-survival-guide/) |
+| `setup --survival-guide` | `setup-survival-guide/` | [/setup-survival-guide/](https://marianna3000.github.io/collaboration-bootcamp/setup-survival-guide/) |
+| `git --survival-guide` | `git-survival-guide/` | [/git-survival-guide/](https://marianna3000.github.io/collaboration-bootcamp/git-survival-guide/) |
+| `ci --survival-guide` | `ci-survival-guide/` | [/ci-survival-guide/](https://marianna3000.github.io/collaboration-bootcamp/ci-survival-guide/) |
+| `spark --survival-guide` | `spark-survival-guide/` | [/spark-survival-guide/](https://marianna3000.github.io/collaboration-bootcamp/spark-survival-guide/) |
+| `python --survival-guide` | `python-survival-guide/` | [/python-survival-guide/](https://marianna3000.github.io/collaboration-bootcamp/python-survival-guide/) |
+| `ai --survival-guide` (WIP) | `ai-survival-guide/` | [/ai-survival-guide/](https://marianna3000.github.io/collaboration-bootcamp/ai-survival-guide/) |
 
 ## How it works
 
@@ -58,6 +61,5 @@ Note: cross-page links between guides assume the `/collaboration-bootcamp/` path
 
 ## Conventions
 
-- Verify every command in a guide against the real tool before it ships.
 - Imperative, ≤50-char commit subjects (the git guide is watching).
 - One logical change per commit; `git add -p` is your scalpel.

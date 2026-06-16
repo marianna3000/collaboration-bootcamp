@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>./onboard.sh — The Consultant's Setup Survival Guide</title>
+<title>setup --survival-guide — The Consultant's Setup Survival Guide</title>
 <meta name="description" content="IDE, terminal, software engineering habits, Python tooling & ways of working — the field reference for consultants who want a laptop that could die at the airport without killing the engagement.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -232,7 +232,7 @@ footer{border-top:1px solid var(--rail);margin-top:4rem;padding:1.6rem 0 2.4rem;
 
 <header class="hero">
   <div class="chip"><span class="step">survival guide series</span><span>·</span><span>consultant edition</span><span>·</span><span class="exit ok">v1.0.0</span></div>
-  <h1>./onboard.sh<br>The Consultant's Setup Survival Guide</h1>
+  <h1>setup --survival-guide<br><span style="font-weight:400;font-size:.62em;opacity:.8">The Consultant's Setup Survival Guide</span></h1>
   <div class="term" aria-label="Terminal animation: a bootstrap script auditing a messy laptop">
     <div class="term-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-title">zsh — onboard.sh — 80×24</span></div>
     <div class="term-body">
@@ -241,6 +241,9 @@ footer{border-top:1px solid var(--rail);margin-top:4rem;padding:1.6rem 0 2.4rem;
     </div>
   </div>
 </header>
+
+<div class="note"><b>VERSION NOTE</b>
+This guide pins exact tool versions — Python 3.14.6, uv 0.11.21, Node 24.16.0, PostgreSQL 18.4, and the pre-commit hook revisions below — current as of June 2026. These examples assume those versions; newer releases may change flags, defaults, or behavior, so re-check the numbers before relying on them.</div>
 
 <!-- ======================= 00 WHY ======================= -->
 <section id="why" class="reveal">
@@ -296,7 +299,7 @@ footer{border-top:1px solid var(--rail);margin-top:4rem;padding:1.6rem 0 2.4rem;
 $ mise install            <span class="cm"># reads .mise.toml → exact python/node, no guessing</span>
 $ uv sync                 <span class="cm"># reads uv.lock → identical deps to everyone else</span>
 $ direnv allow            <span class="cm"># loads project env vars the moment you cd in</span>
-$ git switch -c feat/surcharge-rules
+$ git switch -c feature/surcharge-rules
 <span class="cm"># ... edit; ruff fixes on save; tests in the sidebar ...</span>
 $ uv run pytest -x        <span class="cm"># -x: stop at first failure, fix, repeat</span>
 $ git add -p              <span class="cm"># stage hunks, not 'add .' — review yourself first</span>
@@ -427,7 +430,7 @@ $ git push                <span class="cm"># open PR; small diff, reviewable in 
     <h3>A worked session: new project, from zero</h3>
   </div>
   <div class="codewrap"><button class="copy">copy</button><pre><code>$ mkdir nimbus-pricing &amp;&amp; cd nimbus-pricing
-$ mise use python@3.12          <span class="cm"># writes .mise.toml, installs 3.12 if missing</span>
+$ mise use python@3.14          <span class="cm"># writes .mise.toml, installs 3.14 if missing</span>
 $ uv init --package .           <span class="cm"># pyproject.toml + src/ layout</span>
 $ uv add polars pydantic        <span class="cm"># deps → pyproject + uv.lock, resolved in ms</span>
 $ uv add --dev pytest ruff      <span class="cm"># dev-only deps stay out of prod</span>
@@ -541,8 +544,8 @@ alias cat="bat --paging=never"   <span class="cm"># pretty cat; `command cat` st
   <div class="content"><h3>3 · .mise.toml — committed per project</h3></div>
   <div class="codewrap"><button class="copy">copy</button><pre><code><span class="cm"># .mise.toml — in the repo root, committed. `mise install` converges to this.</span>
 [tools]
-python = "3.12.8"     <span class="cm"># exact, not "3.12" — pin to current, bump deliberately</span>
-node = "22.13.0"      <span class="cm"># only if the project needs it</span></code></pre></div>
+python = "3.14.6"     <span class="cm"># exact, not "3.14" — pin to current, bump deliberately</span>
+node = "24.16.0"      <span class="cm"># only if the project needs it</span></code></pre></div>
 
   <div class="content"><h3>4 · pyproject.toml — lint, format, test: one file</h3></div>
   <div class="codewrap"><button class="copy">copy</button><pre><code><span class="cm"># pyproject.toml (tool sections) — Ruff replaces black + flake8 + isort, in one pass</span>
@@ -563,17 +566,17 @@ testpaths = ["tests"]</code></pre></div>
   <div class="codewrap"><button class="copy">copy</button><pre><code><span class="cm"># .pre-commit-config.yaml — committed; everyone runs `uvx pre-commit install` once</span>
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.0          <span class="cm"># pin to current; ruff-check id exists from v0.12.0+</span>
+    rev: v0.15.17          <span class="cm"># pin to current; `ruff-check` is the current hook id (older configs use the legacy `ruff`)</span>
     hooks:
       - id: ruff-check    <span class="cm"># lint (older configs use the legacy id `ruff`)</span>
         args: [--fix]
       - id: ruff-format   <span class="cm"># format — replaces black</span>
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.24.0          <span class="cm"># pin to current</span>
+    rev: v8.30.1          <span class="cm"># pin to current</span>
     hooks:
       - id: gitleaks      <span class="cm"># blocks the career-limiting commit (see step 11)</span>
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
@@ -614,8 +617,7 @@ export ENVIRONMENT=dev
   </table></div>
   <div class="content">
     <p>The three principles underneath — transparency, inspection, adaptation — are the actual point; the ceremonies are just scaffolding for them. Consultant survival notes: in the daily, answer <em>yesterday / today / blockers</em> in thirty seconds — it's a synchronization, not a status novel. Treat the retrospective as the highest-leverage meeting of the sprint; it's where you, the outsider, can legitimately improve the client's process. And know the term <strong>Definition of Done</strong> — the team's checklist for "actually finished" (reviewed, tested, deployed via pipeline), because "done" without one means five different things to five people.</p>
-    <p>One more acronym for regulated or hardware-adjacent clients: <strong>CMMI</strong> — a five-level process maturity model (Initial → Managed → Defined → Quantitatively Managed → Optimizing). You'll rarely run it, but when a client says "we're aiming for Level 3", you should know they mean defined, repeatable processes — and expect more ceremony, not less.</p>
-    <h3>TDD: red → green → refactor</h3>
+      <h3>TDD: red → green → refactor</h3>
     <p>Test-Driven Development inverts the order you were probably taught: <strong>write the failing test first</strong>, write just enough code to pass it, then refactor with the test as your safety net — and loop. Test and production code grow simultaneously, which is the trick: coverage stops being homework done after the fact, and the tests pressure your design toward small, simple units (TDD is where <strong>KISS</strong> and <strong>YAGNI</strong> from step 04 stop being posters and start being enforced).</p>
   </div>
   <figure class="wide">
@@ -630,7 +632,7 @@ export ENVIRONMENT=dev
         <text x="380" y="118" text-anchor="middle" fill="#0e7c86" font-size="11">repeat — in minutes, not days</text>
       </g>
     </svg>
-    <figcaption>fig 3 — the TDD loop. <code>uv run pytest -x</code> from step 01 is this loop's engine.</figcaption>
+    <figcaption>fig 2 — the TDD loop. <code>uv run pytest -x</code> from step 01 is this loop's engine.</figcaption>
   </figure>
   <div class="content">
     <p>Honest framing so you don't oversell it in a steering meeting: TDD is a <em>design discipline</em>, not a coverage quota. A team can hit 95% coverage writing tests last and still have untestable spaghetti; a team doing TDD gets testable design as a side effect. And it pairs naturally with the bug-fix rule from step 04: a failing test that reproduces the bug, <em>then</em> the fix.</p>
@@ -657,7 +659,7 @@ export ENVIRONMENT=dev
   <div class="codewrap"><button class="copy">copy</button><pre><code><span class="cm"># compose.yaml — committed; the project's local dependencies, declared</span>
 services:
   db:
-    image: postgres:16.4        <span class="cm"># pinned, like everything else on this page</span>
+    image: postgres:18.4        <span class="cm"># pinned, like everything else on this page</span>
     environment:
       POSTGRES_PASSWORD: localdev   <span class="cm"># local-only creds; real ones live in .env</span>
     ports: ["5432:5432"]
@@ -674,8 +676,8 @@ $ docker compose down -v        <span class="cm"># ...and the data too. Fresh st
     <p>The only container-build idea you must internalize at laptop scale is <strong>layer caching</strong>: copy the lockfiles and install dependencies <em>before</em> copying your code, so editing code doesn't reinstall the world.</p>
   </div>
   <div class="codewrap"><button class="copy">copy</button><pre><code><span class="cm"># Dockerfile — minimal and correct for a uv project</span>
-FROM python:3.12-slim
-COPY --from=ghcr.io/astral-sh/uv:0.11.20 /uv /uvx /bin/   <span class="cm"># pin the uv tag</span>
+FROM python:3.14-slim
+COPY --from=ghcr.io/astral-sh/uv:0.11.21 /uv /uvx /bin/   <span class="cm"># pin the uv tag</span>
 
 WORKDIR /app
 <span class="cm"># deps layer first: changes rarely, caches almost always</span>
@@ -693,7 +695,7 @@ CMD ["uv", "run", "python", "-m", "nimbus_pricing"]
   </div>
   <div class="note"><span class="lbl">DEPLOYMENT-GRADE CONTAINERS ARE A DIFFERENT BOOTCAMP</span><p>Multi-stage builds, non-root users, image scanning, healthchecks, registries and immutable deployments are deliberately absent here — they're system-scale concerns, out of this series' scope. The one rule that bridges both worlds: containers log to stdout/stderr, never to files — the streams-as-API rule from step 04, containerized. Windows colleagues: Docker engines run inside WSL2; same rules apply.</p></div>
 </section>
-<!-- ======================= 08 MOST WANTED ======================= -->
+<!-- ======================= 09 MOST WANTED ======================= -->
 <section id="wanted" class="reveal">
   <div class="chip"><span class="step">step 09/13</span><span>09_the_most_wanted</span><span class="exit warn">8 at large</span></div>
   <h2>The Most Wanted</h2>
@@ -713,7 +715,7 @@ CMD ["uv", "run", "python", "-m", "nimbus_pricing"]
       <div class="bounty"><b>THE FIX</b>Explore in notebooks, ship as scripts with tests. See step 10 for the full verdict.</div></div>
     <div class="poster"><div class="wanted">WANTED</div><div class="mug">🌿</div><h3>The Branch Hoarder</h3>
       <p class="crime"><strong>Crime:</strong> a feature branch aged like milk for six weeks. The eventual merge is an archaeology project with conflicts.</p>
-      <div class="bounty"><b>THE FIX</b>Small branches, days not weeks. Rebase on main often; rerere (step 06) makes it painless.</div></div>
+      <div class="bounty"><b>THE FIX</b>Small branches, days not weeks. Rebase on main often; turning on <code>git rerere</code> records your conflict resolutions so the repeats replay themselves.</div></div>
     <div class="poster"><div class="wanted">WANTED</div><div class="mug">🎤</div><h3>The Standup Novelist</h3>
       <p class="crime"><strong>Crime:</strong> turns the 15-minute daily into a 40-minute dramatic reading of their calendar. Chapter three: meetings I attended.</p>
       <div class="bounty"><b>THE FIX</b>Yesterday / today / blockers, thirty seconds. Details move to the people who need them, after.</div></div>
@@ -730,7 +732,7 @@ CMD ["uv", "run", "python", "-m", "nimbus_pricing"]
   </div>
 </section>
 
-<!-- ======================= 09 DEBATE ======================= -->
+<!-- ======================= 10 DEBATE ======================= -->
 <section id="debate" class="reveal">
   <div class="chip"><span class="step">step 10/13</span><span>10_notebooks_vs_scripts</span><span class="exit ok">settled</span></div>
   <h2>The eternal debate: notebooks vs scripts</h2>
@@ -763,12 +765,12 @@ CMD ["uv", "run", "python", "-m", "nimbus_pricing"]
         <text x="615" y="30" text-anchor="middle" fill="#2ea043" font-size="11">shipping</text>
       </g>
     </svg>
-    <figcaption>fig 2 — the handoff that ends the debate. Notebooks find; scripts ship.</figcaption>
+    <figcaption>fig 3 — the handoff that ends the debate. Notebooks find; scripts ship.</figcaption>
   </figure>
   <p class="rule"><strong>The one rule: the moment a notebook gets scheduled, it's a script with worse diffs.</strong> Promote it — extract the logic into a tested module, keep the notebook as the lab journal it was born to be.</p>
 </section>
 
-<!-- ======================= 10 SOS ======================= -->
+<!-- ======================= 11 SOS ======================= -->
 <section id="sos" class="sos reveal">
   <div class="chip"><span class="step">step 11/13</span><span>11_disaster_recovery</span><span class="exit fail">exit 1 — read calmly</span></div>
   <h2>Disaster recovery</h2>
@@ -843,7 +845,7 @@ $ git stash pop                     <span class="cm"># carry on</span></code></p
     <p><code>uvx py-spy dump --pid 12345</code> — instant stack trace of where it's stuck. <code>uvx py-spy top --pid 12345</code> — live, htop-style view of which functions burn CPU. The single best "why is it hanging" tool in the Python toolbox, and it works in production.</p>
   </div>
 </section>
-<!-- ======================= 11 QUIZ ======================= -->
+<!-- ======================= 12 QUIZ ======================= -->
 <section id="quiz" class="reveal">
   <div class="chip"><span class="step">step 12/13</span><span>12_boss_fight</span><span class="exit warn">graded</span></div>
   <h2>Boss fight</h2>
@@ -896,7 +898,7 @@ $ git stash pop                     <span class="cm"># carry on</span></code></p
   </div>
 </section>
 
-<!-- ======================= 12 RESOURCES ======================= -->
+<!-- ======================= 13 RESOURCES ======================= -->
 <section id="resources" class="reveal">
   <div class="chip"><span class="step">step 13/13</span><span>13_required_reading</span><span class="exit ok">exit 0</span></div>
   <h2>Required reading (and playing)</h2>
@@ -919,7 +921,7 @@ $ git stash pop                     <span class="cm"># carry on</span></code></p
 
 <footer>
   <p>survival guide series · consultant edition · built by hand, reproducible by script</p>
-  <p>same series: <a href="/collaboration-bootcamp/git-survival-guide/">02 git</a> · <a href="/collaboration-bootcamp/pipeline-survival-guide/">03 pipelines</a> · <a href="/collaboration-bootcamp/spark-survival-guide/">04 spark</a> · <a href="/collaboration-bootcamp/python-survival-guide/">05 python</a> · <a href="/collaboration-bootcamp/ai-survival-guide/">06 ai</a> · <a href="/collaboration-bootcamp/">the front door</a></p>
+  <p>same series: <a href="/collaboration-bootcamp/python-survival-guide/">python</a> · <a href="/collaboration-bootcamp/git-survival-guide/">git</a> · <a href="/collaboration-bootcamp/ci-survival-guide/">ci</a> · <a href="/collaboration-bootcamp/spark-survival-guide/">spark</a> · <a href="/collaboration-bootcamp/ai-survival-guide/">ai</a> · <a href="/collaboration-bootcamp/">the front door</a></p>
   <p>this page exited with code <span id="exitcode" role="button" tabindex="0" aria-label="Easter egg">0</span></p>
   <p id="egg-msg">✓ deployed from a laptop that could be replaced in 30 minutes. that's the whole religion.</p>
 </footer>

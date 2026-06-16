@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Collaboration Bootcamp — the survival guide series</title>
-<meta name="description" content="Collaboration Bootcamp — one front door for the survival guide series: setup, git, pipelines, Spark. Pick your panic.">
+<meta name="description" content="Collaboration Bootcamp — one front door for the survival guide series: setup, git, pipelines, Spark, Python, and AI. Pick your panic.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
@@ -67,9 +67,8 @@ p{margin:0 0 .9rem;max-width:70ch}
 .badge.queue{background:#fff8e6;color:#946f00;border:1px solid var(--yellow)}
 .badge.planned{background:var(--paper-dim);color:var(--ink-soft);border:1px solid var(--rail)}
 .badge.wip{background:#fff4e6;color:#9a3412;border:1px solid #ea580c}
-.c-setup{border-left-color:var(--c-setup)} .c-git{border-left-color:var(--c-git)}
-.c-pipe{border-left-color:var(--c-pipe)} .c-spark{border-left-color:var(--c-spark)}
-.c-python{border-left-color:var(--c-python)} .c-ai{border-left-color:var(--c-ai)}
+/* all module cards share one accent color */
+.c-setup,.c-git,.c-pipe,.c-spark,.c-python,.c-ai{border-left-color:var(--c-pipe)}
 
 /* track */
 .track{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;font-family:var(--mono);font-size:.8rem;margin:0 0 1rem}
@@ -110,55 +109,58 @@ footer{border-top:1px solid var(--rail);margin-top:2.6rem;padding-top:1.4rem;fon
 </div>
 
 <h1>Collaboration Bootcamp</h1>
-<p class="subtitle">aka <span style="font-family:var(--mono);font-style:normal">./survive --list</span> — the survival guide series. One front door, four flavors of panic. Pick yours.</p>
+<p class="subtitle">aka <span style="font-family:var(--mono);font-style:normal">./survive --list</span> — the survival guide series. One front door, six flavors of panic. Pick yours.</p>
 
 <section class="reveal" id="tracks">
   <h2>what this is, and where to start</h2>
   <p>A welcome package for new joiners and a mid-panic reference for everyone else. Each module is one self-contained page covering a survival skill of the trade — your machine, your git history, your Python, your pipeline. New here? Read them in this order:</p>
   <div class="track">
-    <a href="/collaboration-bootcamp/consultant-setup-survival-guide/">01 setup</a><span class="arr">→</span>
-    <a href="/collaboration-bootcamp/git-survival-guide/">02 git</a><span class="arr">→</span>
-    <a href="/collaboration-bootcamp/pipeline-survival-guide/">03 pipelines</a><span class="arr">→</span>
-    <a href="/collaboration-bootcamp/spark-survival-guide/">04 spark</a>
+    <a href="/collaboration-bootcamp/setup-survival-guide/">01 setup</a><span class="arr">→</span>
+    <a href="/collaboration-bootcamp/python-survival-guide/">02 python</a><span class="arr">→</span>
+    <a href="/collaboration-bootcamp/git-survival-guide/">03 git</a><span class="arr">→</span>
+    <a href="/collaboration-bootcamp/ci-survival-guide/">04 ci</a><span class="arr">→</span>
+    <a href="/collaboration-bootcamp/spark-survival-guide/">05 spark</a>
+    <span class="arr">+ companion:</span>
+    <a href="/collaboration-bootcamp/ai-survival-guide/">06 ai</a>
   </div>
-  <p>Each one stands alone — but they link forward: the setup guide's inner loop becomes the pipeline guide's outer loop, and the pipeline guide's testing chapter is what the Spark guide will assume you know. <strong>05 Python idioms</strong> is a foundations companion — it pairs with setup, so read it early if the language itself is new to you. <strong>06 AI</strong> cuts across all of them: how to use AI tools on this work without leaking the client.</p>
+  <p>Each one stands alone — but they build on each other: get your machine working (setup), get fluent in the language (Python), put your work under version control (git), ship it safely (CI/CD), then scale it (Spark). The setup guide's inner loop becomes the CI guide's outer loop, and the CI guide's testing chapter is what the Spark guide assumes you know. <strong>06 AI</strong> is the lone companion — it cuts across all of them: how to use AI tools on this work without leaking the client.</p>
 </section>
 
 <section class="reveal" id="modules">
   <h2>the modules</h2>
   <div class="cards">
     <div class="card shipped c-setup" data-mod="setup">
-      <h3><span class="ord" style="font-family:var(--mono);opacity:.55;font-weight:400">01</span> ./onboard.sh <span class="badge live">● live</span></h3>
+      <h3><span class="ord" style="font-family:var(--mono);opacity:.55;font-weight:400">01</span> setup --survival-guide <span class="badge live">● live</span></h3>
       <p class="desc">The Consultant's Setup Survival Guide — terminal, Python tooling, IDE, containers on your machine, and a laptop you could replace in 30 minutes.</p>
       <p class="pan">For when: it's day one and nothing is installed, or day 400 and nothing works.</p>
-      <div class="links"><a href="/collaboration-bootcamp/consultant-setup-survival-guide/">read →</a><a class="sos" href="/collaboration-bootcamp/consultant-setup-survival-guide/#sos">😱 env broken</a></div>
+      <div class="links"><a href="/collaboration-bootcamp/setup-survival-guide/">read →</a><a class="sos" href="/collaboration-bootcamp/setup-survival-guide/#sos">😱 env broken</a></div>
+    </div>
+    <div class="card shipped c-python">
+      <h3><span class="ord" style="font-family:var(--mono);opacity:.55;font-weight:400">02</span> python --survival-guide <span class="badge live">● live</span></h3>
+      <p class="desc">The Python Survival Guide — writing Python that reads like Python. Comprehensions, context managers, dataclasses, the data model, EAFP.</p>
+      <p class="pan">For when: the code works but a reviewer winced.</p>
+      <div class="links"><a href="/collaboration-bootcamp/python-survival-guide/">read →</a><a class="sos" href="/collaboration-bootcamp/python-survival-guide/#s09">🔥 traceback</a></div>
     </div>
     <div class="card shipped c-git" data-mod="git">
-      <h3><span class="ord" style="font-family:var(--mono);opacity:.55;font-weight:400">02</span> git log --survival-guide <span class="badge live">● live</span></h3>
+      <h3><span class="ord" style="font-family:var(--mono);opacity:.55;font-weight:400">03</span> git --survival-guide <span class="badge live">● live</span></h3>
       <p class="desc">The Git Survival Guide — how git thinks, the 12 commands that matter, merge vs rebase settled, and disaster recovery for every flavor of oh-no.</p>
       <p class="pan">For when: the branch is a crime scene and the PR is due.</p>
       <div class="links"><a href="/collaboration-bootcamp/git-survival-guide/">read →</a><a class="sos" href="/collaboration-bootcamp/git-survival-guide/#sos">😱 git mess</a></div>
     </div>
     <div class="card shipped c-pipe" data-mod="pipeline">
-      <h3><span class="ord" style="font-family:var(--mono);opacity:.55;font-weight:400">03</span> pipeline-survival-guide <span class="badge live">● live</span></h3>
-      <p class="desc">The Pipeline Survival Guide — Python testing, typing, logging, and CI/CD anatomy, vendor-neutral. Releases so boring they're praise.</p>
+      <h3><span class="ord" style="font-family:var(--mono);opacity:.55;font-weight:400">04</span> ci --survival-guide <span class="badge live">● live</span></h3>
+      <p class="desc">The CI/CD Survival Guide — Python testing, typing, logging, and CI/CD anatomy, vendor-neutral. Releases so boring they're praise.</p>
       <p class="pan">For when: the pipeline is red and the release is today.</p>
-      <div class="links"><a href="/collaboration-bootcamp/pipeline-survival-guide/">read →</a><a class="sos" href="/collaboration-bootcamp/pipeline-survival-guide/#s10">🔴 pipeline red</a></div>
+      <div class="links"><a href="/collaboration-bootcamp/ci-survival-guide/">read →</a><a class="sos" href="/collaboration-bootcamp/ci-survival-guide/#s10">🔴 pipeline red</a></div>
     </div>
     <div class="card shipped c-spark">
-      <h3><span class="ord" style="font-family:var(--mono);opacity:.55;font-weight:400">04</span> spark-survival-guide <span class="badge live">● live</span></h3>
+      <h3><span class="ord" style="font-family:var(--mono);opacity:.55;font-weight:400">05</span> spark --survival-guide <span class="badge live">● live</span></h3>
       <p class="desc">The Spark Survival Guide — PySpark for people who get paged. Lazy DAGs, shuffles, skew, and why collect() was a mistake.</p>
       <p class="pan">For when: the driver has left the chat.</p>
       <div class="links"><a href="/collaboration-bootcamp/spark-survival-guide/">read →</a><a class="sos" href="/collaboration-bootcamp/spark-survival-guide/#s09">💀 driver lost</a></div>
     </div>
-    <div class="card shipped c-python">
-      <h3><span class="ord" style="font-family:var(--mono);opacity:.55;font-weight:400">05</span> python-survival-guide <span class="badge live">● live</span></h3>
-      <p class="desc">The Python Survival Guide — writing Python that reads like Python. Comprehensions, context managers, dataclasses, the data model, EAFP.</p>
-      <p class="pan">For when: the code works but a reviewer winced.</p>
-      <div class="links"><a href="/collaboration-bootcamp/python-survival-guide/">read →</a><a class="sos" href="/collaboration-bootcamp/python-survival-guide/#s09">🔥 traceback</a></div>
-    </div>
     <div class="card shipped c-ai">
-      <h3><span class="ord" style="font-family:var(--mono);opacity:.55;font-weight:400">06</span> ai-survival-guide <span class="badge wip">🚧 work in progress</span></h3>
+      <h3><span class="ord" style="font-family:var(--mono);opacity:.55;font-weight:400">06</span> ai --survival-guide <span class="badge wip">🚧 work in progress</span></h3>
       <p class="desc">The AI Survival Guide — using AI tools without leaking the client. Review before you accept, keep confidential data out of the box, keep the agent on a leash.</p>
       <p class="pan">For when: the autocomplete just suggested a real password. (Draft — feedback welcome.)</p>
       <div class="links"><a href="/collaboration-bootcamp/ai-survival-guide/">read →</a><a class="sos" href="/collaboration-bootcamp/ai-survival-guide/#s09">🚨 leaked</a></div>
@@ -166,27 +168,17 @@ footer{border-top:1px solid var(--rail);margin-top:2.6rem;padding-top:1.4rem;fon
   </div>
 </section>
 
-<section class="reveal" id="onfire">
-  <h2>already on fire? skip the reading</h2>
-  <div class="router">
-    <a class="routerow" href="/collaboration-bootcamp/consultant-setup-survival-guide/#sos"><span class="sym">"My environment is broken and I can't even run the thing."</span><span class="dest">😱 setup SOS →</span></a>
-    <a class="routerow" href="/collaboration-bootcamp/git-survival-guide/#sos"><span class="sym">"I committed to the wrong branch / force-pushed / it's all gone."</span><span class="dest">😱 git SOS →</span></a>
-    <a class="routerow" href="/collaboration-bootcamp/pipeline-survival-guide/#s10"><span class="sym">"The pipeline is red, the test is flaky, the release is today."</span><span class="dest">🔴 pipeline SOS →</span></a>
-    <a class="routerow" href="/collaboration-bootcamp/spark-survival-guide/#s09"><span class="sym">"The Spark job OOMed at 3am."</span><span class="dest">💀 spark SOS →</span></a>
-    <a class="routerow" href="/collaboration-bootcamp/python-survival-guide/#s09"><span class="sym">"Traceback (most recent call last) and I can't read it."</span><span class="dest">🔥 python SOS →</span></a>
-    <a class="routerow" href="/collaboration-bootcamp/ai-survival-guide/#s09"><span class="sym">"I pasted a client secret into an AI tool."</span><span class="dest">🚨 ai SOS →</span></a>
-  </div>
-</section>
-
 <section class="reveal" id="conventions">
   <h2>how the series works</h2>
-  <div class="note"><b>SERIES CONSTANTS</b>
-  One self-contained <code style="font-family:var(--mono)">index.html</code> per module, zero build, GitHub Pages. Mono headings, serif body. Every module has: a day-zero loop, a mental model, wanted posters, a settled holy war, disaster recovery with a panic button, and a boss fight. Every command is verified against the real tool before it ships. Edit, push, done — PRs welcome on any module.</div>
+  <div class="note"><b>WHAT EVERY MODULE CONTAINS</b>
+  Each guide follows the same shape so you always know where to look: a <strong>day-zero loop</strong> (the handful of steps you'll run every day), a <strong>mental model</strong> of how the thing actually works, <strong>"wanted posters"</strong> of the common mistakes, one <strong>settled holy war</strong> (the recurring debate, decided), a <strong>disaster-recovery</strong> section reachable from the panic button, and a <strong>boss-fight quiz</strong> to test yourself.</div>
+  <div class="note"><b>HOW TO CONTRIBUTE</b>
+  Each module is one self-contained <code style="font-family:var(--mono)">index.html</code> — no build step, no framework — deployed by GitHub Pages. Edit the file and open a PR; small PRs are welcome on any module. House style: mono headings, serif body. Full workflow and local-preview steps are in the <a href="https://github.com/marianna3000/collaboration-bootcamp#readme">README</a>.</div>
 </section>
 
 <footer>
   <p>survival guide series · the front door · add the next module by editing one card above</p>
-  <p style="margin-top:.5rem">$ ./survive --status → <span id="egg" role="button" tabindex="0" aria-label="Easter egg">4 panics survived, 0 careers lost</span></p>
+  <p style="margin-top:.5rem">$ ./survive --status → <span id="egg" role="button" tabindex="0" aria-label="Easter egg">6 panics survived, 0 careers lost</span></p>
 </footer>
 
 </div>
@@ -196,12 +188,12 @@ footer{border-top:1px solid var(--rail);margin-top:2.6rem;padding-top:1.4rem;fon
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const lines = [
   {t:'$ ./survive --list', cls:''},
-  {t:'setup      ./onboard.sh                 [live]   😱 ENV BROKEN', cls:'ok'},
-  {t:'git        git log --survival-guide     [live]   😱 PANIC', cls:'ok'},
-  {t:'pipeline   pipeline-survival-guide      [live]   🔴 PIPELINE RED', cls:'ok'},
-  {t:'spark      spark-survival-guide         [live]   💀 DRIVER LOST', cls:'ok'},
-  {t:'python     python-survival-guide        [live]   🔥 TRACEBACK', cls:'ok'},
-  {t:'ai         ai-survival-guide            [WIP]    🚨 LEAKED', cls:'warn'},
+  {t:'setup      setup --survival-guide       [live]   😱 ENV BROKEN', cls:'ok'},
+  {t:'python     python --survival-guide      [live]   🔥 TRACEBACK', cls:'ok'},
+  {t:'git        git --survival-guide         [live]   😱 GIT MESS', cls:'ok'},
+  {t:'ci         ci --survival-guide          [live]   🔴 PIPELINE RED', cls:'ok'},
+  {t:'spark      spark --survival-guide       [live]   💀 DRIVER LOST', cls:'ok'},
+  {t:'ai         ai --survival-guide          [WIP]    🚨 LEAKED', cls:'warn'},
   {t:'5 modules live · 1 in progress · 0 panics unhandled · pick yours below', cls:'dim'}
 ];
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
